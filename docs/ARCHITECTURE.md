@@ -253,6 +253,70 @@ Logging a repeat meal is now one tap: the Log again row ranks the last 30 days
 by frequency, carries the portion forward, and picks the meal slot from the
 clock. Anything new still goes through the sheet.
 
+## v3: paying for packets, not grams
+
+The costing model in v1 and v2 was wrong in a way that only shows up in a real
+kitchen. It priced a recipe pro-rata: 20 g of milk at ₹58/kg is ₹1.16. But
+nobody buys 20 g of milk. You buy a 500 ml packet for ₹29, and the budget
+engine was understating every small quantity by a factor of twenty-five.
+
+The fix is not simply to round everything up, because the error is not uniform.
+In India, dal, atta, milk, oil and paneer come in fixed packs; bhindi, palak
+and tomatoes are sold loose by weight at the sabziwala, where you really can
+buy 250 g and pro-rata **is** honest. So every food now carries either `packs`
+(real retail sizes) or `loose: true`, and `packPlan()` behaves differently for
+each.
+
+That produces two numbers that answer different questions, and the app shows
+both rather than picking one:
+
+- **ingredients** — what a serving consumed in value. Compare recipes with it.
+- **at the till** — what you pay buying it fresh today, in whole packs, minus
+  whatever the pantry already holds.
+
+For dal tadka on an empty kitchen those are ₹18 and ₹398. That gap is not a
+bug, it is the cost of stocking a kitchen, and it collapses as the pantry
+fills: with the ingredients already in hand the till cost falls to ₹3, the
+spice allowance.
+
+The weekly budget check now runs against the till cost rather than ingredient
+value, because the till number is the one you actually pay. A first week's
+shop reports all three figures — paid, eaten, left in the cupboard — and when
+it exceeds the budget largely because of stock-up, it says so instead of
+pretending the plan is unaffordable.
+
+One consequence worth noting: purchase packs are **not** serving sizes. Toor
+dal has `packs: [500, 1000]` for shopping, but offering "500 g" as a portion
+to eat is nonsense, so `packMeasures()` only returns pack portions for foods
+eaten straight from the packet. A test enforces it.
+
+## Grams or katoris
+
+Some people own a kitchen scale and find katori estimates actively annoying;
+some do not own one and cannot judge "60 g of dry dal" by eye. The profile
+carries `units`, asked at sign-up and switchable in You.
+
+Only the ordering changes. `measuresFor(db, food, units)` returns the same
+complete list either way, with grams first or the household measure first,
+because a scale owner still needs katoris when eating out and the reverse is
+true for anyone who buys a scale later. Nothing already logged is rewritten.
+
+## Choices instead of verdicts
+
+`repairDay()` used to answer a blown lunch with one dinner. One suggestion is
+a verdict; people want to choose. It now returns up to three per remaining
+slot, and the runners-up are deliberately picked to *differ* — best overall,
+then cheapest, then quickest — because ranking strictly by score returns three
+variations on the same dal. Switching between them updates the day's
+projection live.
+
+`fitCheck()` answers the other direction: you name something you want and it
+reports the arithmetic. If it fits, it says so with the numbers. If it does
+not, it says what fraction would, because "no" is useless and "about
+two-thirds of a plate" is actionable. A test asserts it never moralises — an
+app that makes you feel bad about chole bhature is an app you stop opening,
+and an unlogged day is worse than an expensive one.
+
 ## Known weaknesses
 
 | What | Why it matters | Fix |
@@ -262,6 +326,8 @@ clock. Anything new still goes through the sheet.
 | The planner can pick odd serving counts (2.5 bowls of sprouts) | Reads as an app gaming its own score | Clamp per-recipe, or add a plausibility bound per meal type |
 | No micronutrients | Iron, B12 and calcium matter on a vegetarian diet | IFCT has the columns; it is an extraction job |
 | Scanned products have no price | Cost tracking silently under-reports until you set one | Prompt for price on first log of a scanned item |
+| Pack sizes are a national guess | Your kirana may sell 450 g or loose dal by weight | Make `packs` editable per food, like prices already are |
+| Leftovers never expire | 400 ml of milk does not survive a week in a Delhi summer | Add a shelf life per food and age the pantry |
 | Pantry quantities drift | Decrementing assumes you cooked exactly the recipe | Accepted: quantities are optional for this reason |
 | Coverage ranking favours short recipes | A 4-ingredient recipe outranks a better 7-ingredient one | Weight coverage by ingredient importance, not count |
 | localStorage only | Lost phone, lost log | Export exists; IndexedDB + optional file-based backup is the next step |

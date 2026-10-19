@@ -57,6 +57,15 @@
       </fieldset>
 
       <fieldset>
+        <legend>How you measure</legend>
+        <div class="seg seg-wide" role="radiogroup" aria-label="How you measure food">
+          <label><input type="radio" name="units" value="katori" checked><span>By katori</span></label>
+          <label><input type="radio" name="units" value="grams"><span>Kitchen scale</span></label>
+        </div>
+        <small class="hint">A scale is more accurate. Katoris are faster and work when you are eating out. You can switch any time, and both stay available either way.</small>
+      </fieldset>
+
+      <fieldset>
         <legend>What you eat</legend>
         <div class="seg seg-wide" role="radiogroup" aria-label="Diet">
           <label><input type="radio" name="diet" value="veg" checked><span>Vegetarian</span></label>
@@ -186,6 +195,14 @@
   <h3 class="section-head">Weekly review</h3>
   <div id="review" class="callout"></div>
 
+  <h3 class="section-head">How you measure</h3>
+  <div class="seg seg-wide" id="units-toggle" role="radiogroup" aria-label="How you measure food">
+    <label><input type="radio" name="units2" value="katori"><span>By katori</span></label>
+    <label><input type="radio" name="units2" value="grams"><span>Kitchen scale</span></label>
+  </div>
+  <p class="note" id="units-note"></p>
+
+  <div id="katori-block">
   <h3 class="section-head">Calibrate your katori</h3>
   <p class="note">Fill your usual katori with water and tip it into a measuring jug. Everything you log in katoris scales from this one number.</p>
   <form id="katori-form" class="inline-form">
@@ -193,6 +210,7 @@
     <button class="btn" type="submit">Save</button>
   </form>
   <p id="katori-note" class="note"></p>
+  </div>
 
   <h3 class="section-head">Targets</h3>
   <div id="target-detail" class="ledger-plain"></div>

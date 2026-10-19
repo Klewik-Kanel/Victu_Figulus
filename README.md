@@ -59,9 +59,11 @@ chole bhature, restaurant dal makhani. Logged by the pack size actually sold —
 "one ₹20 packet", not "estimate the grams". Anything missing, scan the barcode
 and it is fetched from Open Food Facts and cached forever.
 
-**Fixes the rest of your day.** Had a Monster and two packets of chips for
-lunch? Tap *Plan the rest of my day* and it works out what is left and what
-dinner still lands you on target. It will not starve you to pay for a bad
+**Fixes the rest of your day, with options.** Had a Monster and two packets of
+chips for lunch? Tap *Plan the rest* and it offers three choices for each
+remaining meal — best fit, cheapest, quickest — and updates the projection as
+you switch between them. You can also name something you want ("chole
+bhature") and it tells you whether it fits, or what portion would. It will not starve you to pay for a bad
 lunch, and past a point it says the day is gone and offers to spread the
 surplus gently across the week instead.
 
@@ -83,6 +85,17 @@ every katori you ever log scales to it.
 **Plans a week against four constraints at once.** Calories and protein,
 your monthly budget, what is in season this month, and your diet setting.
 Output is seven days plus one consolidated shopping list with a running cost.
+
+**Costs it the way you actually pay.** A recipe using 20 g of milk does not
+cost 20 g worth of milk — you buy a 500 ml packet. Every food is marked as
+sold in packs or sold loose, and the shopping list buys whole packs. The plan
+shows three numbers: what you hand over at the till, what gets eaten this
+week, and what stays in your cupboard for later.
+
+**Grams or katoris, your choice.** Set it at sign-up and change it any time in
+You. On a kitchen scale everything leads with grams; without one you get
+household measures. Neither mode removes the other — a scale owner can still
+log a katori when eating out.
 
 **Costs everything.** Every meal, every plan and every shopping list carries a
 rupee figure. Tap any price in the shopping list to correct it; the correction

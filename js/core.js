@@ -322,6 +322,7 @@ export function generateWeekPlan(db, opts) {
     dislikes = [],
     priceOverrides = {},
     katoriScale = 1,
+    pantry = {},
     startDate = new Date(),
   } = opts;
 
@@ -343,20 +344,32 @@ export function generateWeekPlan(db, opts) {
   let costWeight = 1;
   let attempt;
 
+  // The budget is checked against what the shop ACTUALLY costs - whole packs,
+  // minus what the pantry already holds - not against pro-rata ingredient
+  // value. Those two numbers are far apart on a first shop and converge once
+  // the cupboard is stocked, and the first one is the one you pay.
   for (let i = 0; i < 6; i++) {
     attempt = buildWeek({ db, pool, target, month, household, priceOverrides, katoriScale, costWeight, startDate });
-    if (attempt.totalCost <= weeklyBudget) break;
+    attempt.month = month;
+    const list = shoppingList(db, attempt, { household, month, priceOverrides, pantry });
+    attempt.shopping = list;
+    attempt.tillCost = list.total;
+    attempt.eatenValue = list.eatenValue;
+    attempt.leftoverValue = list.leftoverValue;
+    if (list.total <= weeklyBudget) break;
     costWeight *= 1.8;
   }
 
-  attempt.withinBudget = attempt.totalCost <= weeklyBudget;
+  attempt.withinBudget = attempt.tillCost <= weeklyBudget;
   attempt.weeklyBudget = weeklyBudget;
-  attempt.month = month;
+
   if (!attempt.withinBudget) {
-    attempt.budgetNote =
-      `The cheapest sensible week I can build at your calorie and protein targets costs about Rs ${Math.round(attempt.totalCost)}, ` +
-      `against a budget of Rs ${Math.round(weeklyBudget)}. Either the budget needs about Rs ${Math.round(attempt.totalCost - weeklyBudget)} more per week, ` +
-      `or the protein target has to come down. I have not quietly cut your food to make the number fit.`;
+    const stockUp = attempt.leftoverValue;
+    attempt.budgetNote = stockUp > attempt.tillCost * 0.35
+      ? `This shop comes to Rs ${attempt.tillCost} against a weekly budget of Rs ${Math.round(weeklyBudget)}, but Rs ${stockUp} of that stays in your cupboard rather than being eaten this week. ` +
+        `Stocking a kitchen from empty always costs more than running one. Next week's list should be far smaller, and the week after that smaller still.`
+      : `The cheapest sensible week at your calorie and protein targets costs about Rs ${attempt.tillCost} at the till, against a budget of Rs ${Math.round(weeklyBudget)}. ` +
+        `Either the budget needs about Rs ${attempt.tillCost - Math.round(weeklyBudget)} more, or the protein target has to come down. I have not quietly cut your food to make the number fit.`;
   }
   return attempt;
 }
@@ -466,10 +479,128 @@ export function clamp(v, lo, hi) {
 // ---------------------------------------------------------------------------
 
 /**
- * Consolidates a week of meals into one list, rounded to how things are
- * actually sold - you cannot buy 340 g of atta.
+ * What you actually hand over at the till.
+ *
+ * A recipe using 20 g of milk does not cost 20 g worth of milk. You buy a
+ * 500 ml packet. Pro-rata costing quietly understates every small quantity,
+ * and for a budget that is the difference between a plan that works and one
+ * that doesn't.
+ *
+ * But this is only true for things sold in packs. Bhindi, palak and tomatoes
+ * are sold loose by weight, so for those pro-rata IS the honest number. The
+ * food data marks which is which.
+ *
+ * Returns the packs you'd buy, what they cost, and what is left over - the
+ * leftover is not waste, it goes into the pantry and the next recipe uses it.
  */
-export function shoppingList(db, plan, { household = 1, month = monthKey(), priceOverrides = {} } = {}) {
+export function packPlan(db, foodId, gramsNeeded, month = monthKey(), overrides = {}) {
+  const food = db.foodsById[foodId];
+  const perKg = pricePerKg(db, foodId, month, overrides);
+
+  if (!food || gramsNeeded <= 0) {
+    return { packs: [], buyG: 0, cost: 0, leftoverG: 0, loose: true };
+  }
+
+  // Sold loose: buy what you need, rounded to something a shopkeeper will weigh.
+  if (food.loose || !food.packs?.length) {
+    const step = 50;
+    const buyG = Math.ceil(gramsNeeded / step) * step;
+    return {
+      packs: [{ g: buyG, cost: (perKg * buyG) / 1000, loose: true }],
+      buyG,
+      cost: (perKg * buyG) / 1000,
+      leftoverG: buyG - gramsNeeded,
+      loose: true,
+    };
+  }
+
+  // Sold in packs: cover the need with as little excess as possible, preferring
+  // fewer, larger packs when the excess is the same.
+  const sizes = [...food.packs].sort((a, b) => b - a);
+  const chosen = [];
+  let remaining = gramsNeeded;
+
+  for (const size of sizes) {
+    while (remaining >= size) { chosen.push(size); remaining -= size; }
+  }
+  if (remaining > 0) {
+    // One more pack: the smallest that covers what is left.
+    const smallestCovering = [...sizes].reverse().find((sz) => sz >= remaining);
+    chosen.push(smallestCovering ?? sizes[sizes.length - 1]);
+  }
+
+  const buyG = chosen.reduce((a, b) => a + b, 0);
+  const cost = (perKg * buyG) / 1000;
+  return {
+    packs: chosen.map((g) => ({ g, cost: (perKg * g) / 1000, loose: false })),
+    buyG,
+    cost,
+    leftoverG: buyG - gramsNeeded,
+    loose: false,
+  };
+}
+
+/** What this quantity costs at the till, buying fresh with an empty pantry. */
+export function tillCost(db, foodId, grams, month = monthKey(), overrides = {}) {
+  return packPlan(db, foodId, grams, month, overrides).cost;
+}
+
+/**
+ * A recipe has two honest costs and they answer different questions.
+ *
+ *   ingredients — what this serving consumed in value. Use it to compare
+ *                 recipes against each other.
+ *   till        — what you'd pay buying every ingredient fresh today. Much
+ *                 higher for anything using a little of a lot of packets.
+ *
+ * Over a week the two converge, because pack leftovers get eaten. The gap is
+ * really the cost of the first shop, so the weekly plan is where it resolves.
+ */
+export function recipeCostBreakdown(db, recipe, servings = 1, month = monthKey(), overrides = {}, pantry = {}) {
+  let ingredients = 0;
+  let till = 0;
+  const lines = [];
+
+  for (const item of recipe.ing) {
+    const g = item.g * servings;
+    const used = costOfStoredGrams(db, item.food, g, month, overrides);
+
+    const held = pantry[item.food];
+    const covered = held ? (held.haveG == null ? Infinity : held.haveG) : 0;
+    const shortfall = Math.max(0, g - covered);
+    const plan = packPlan(db, item.food, shortfall, month, overrides);
+
+    ingredients += used;
+    till += plan.cost;
+    lines.push({
+      foodId: item.food,
+      name: db.foodsById[item.food]?.name ?? item.food,
+      g: Math.round(g),
+      usedCost: Math.round(used),
+      buyG: plan.buyG,
+      tillCost: Math.round(plan.cost),
+      leftoverG: Math.round(plan.leftoverG),
+      loose: plan.loose,
+      alreadyHave: shortfall <= 0,
+    });
+  }
+
+  const spices = 3 * servings;
+  return {
+    ingredients: Math.round(ingredients + spices),
+    till: Math.round(till + spices),
+    lines,
+  };
+}
+
+/**
+ * Consolidates a week of meals into one list and buys real packs.
+ *
+ * Quantities are summed across the whole week BEFORE any rounding, which is
+ * what makes pack sizes work out: seven recipes each wanting 20 g of milk
+ * need one packet between them, not seven.
+ */
+export function shoppingList(db, plan, { household = 1, month = monthKey(), priceOverrides = {}, pantry = {} } = {}) {
   const totals = new Map();
 
   for (const day of plan.days) {
@@ -501,30 +632,66 @@ export function shoppingList(db, plan, { household = 1, month = monthKey(), pric
   const items = [...totals.entries()]
     .map(([foodId, grams]) => {
       const food = db.foodsById[foodId];
-      const buyG = roundToPack(grams, food);
+      const held = pantry[foodId];
+      const covered = held ? (held.haveG == null ? Infinity : held.haveG) : 0;
+      const shortfall = Math.max(0, grams - covered);
+
+      if (shortfall <= 0) {
+        return {
+          foodId, name: food?.name ?? foodId, category: food?.cat ?? 'other',
+          neededG: Math.round(grams), buyG: 0, buyLabel: '—', cost: 0,
+          pricePerKg: Math.round(pricePerKg(db, foodId, month, priceOverrides)),
+          availability: availability(db, foodId, month),
+          alreadyHave: true, leftoverG: 0, loose: !!food?.loose, packs: [],
+        };
+      }
+
+      const plan = packPlan(db, foodId, shortfall, month, priceOverrides);
       return {
         foodId,
         name: food?.name ?? foodId,
         category: food?.cat ?? 'other',
-        neededG: Math.round(grams),
-        buyG,
-        buyLabel: formatQty(buyG),
+        neededG: Math.round(shortfall),
+        buyG: plan.buyG,
+        buyLabel: describePacks(plan, food),
+        cost: Math.round(plan.cost),
         pricePerKg: Math.round(pricePerKg(db, foodId, month, priceOverrides)),
-        cost: Math.round(costOfStoredGrams(db, foodId, buyG, month, priceOverrides)),
         availability: availability(db, foodId, month),
+        alreadyHave: false,
+        partiallyHave: covered > 0,
+        leftoverG: Math.round(plan.leftoverG),
+        loose: plan.loose,
+        packs: plan.packs,
       };
     })
     .sort((a, b) => b.cost - a.cost);
 
-  return { items, total: items.reduce((s, i) => s + i.cost, 0) };
+  const total = items.reduce((s, i) => s + i.cost, 0);
+  const leftoverValue = items.reduce(
+    (s, i) => s + (i.leftoverG > 0 ? (i.pricePerKg * i.leftoverG) / 1000 : 0), 0
+  );
+
+  return {
+    items,
+    total,
+    leftoverValue: Math.round(leftoverValue),
+    eatenValue: Math.round(total - leftoverValue),
+  };
 }
 
-/** Round up to how the thing is sold: pulses and grains in 250 g steps, veg in 100 g. */
-function roundToPack(grams, food) {
-  const step = ['pulse', 'grain', 'protein'].includes(food?.cat) ? 250
-             : food?.cat === 'fat' ? 100
-             : 100;
-  return Math.ceil(grams / step) * step;
+/** "2 × 500 g" reads better on a shopping list than "1 kg". */
+function describePacks(plan, food) {
+  if (plan.loose) return formatQty(plan.buyG);
+  const counts = new Map();
+  for (const p of plan.packs) counts.set(p.g, (counts.get(p.g) ?? 0) + 1);
+  const unit = food?.liquid ? 'ml' : 'g';
+  return [...counts.entries()]
+    .sort((a, b) => b[0] - a[0])
+    .map(([g, n]) => {
+      const label = g >= 1000 ? `${g / 1000} ${unit === 'ml' ? 'l' : 'kg'}` : `${g} ${unit}`;
+      return n > 1 ? `${n} × ${label}` : label;
+    })
+    .join(' + ');
 }
 
 export function formatQty(g) {
@@ -642,8 +809,15 @@ export function buildDb({ foods, portions, seasonality, recipes, packaged, scann
   return db;
 }
 
-/** A packaged item's own pack sizes, as measures the portion pad can use. */
+/**
+ * A packaged item's own pack sizes, as measures the portion pad can use.
+ *
+ * Only for things you eat by the packet. Staples also carry `packs`, but
+ * those are PURCHASE sizes for the shopping list - nobody sits down to a
+ * 500 g serving of toor dal, and offering it as a portion is nonsense.
+ */
 export function packMeasures(food) {
+  if (!food?.isPackaged) return [];
   return (food.packs ?? []).map((p, i) => ({
     id: `${food.id}__pack${i}`,
     label: p.label,
@@ -653,14 +827,37 @@ export function packMeasures(food) {
   }));
 }
 
-/** Measures that make sense for a given food, best default first. */
-export function measuresFor(db, food) {
+/**
+ * Measures that make sense for a given food, best default first.
+ *
+ * `units` follows the profile. Someone with a kitchen scale wants grams at
+ * the top and finds katori guesses actively annoying; someone without one
+ * needs the household measures, because "about 60 g of dry dal" is not a
+ * thing anyone can judge by eye. Both lists stay complete - only the order
+ * changes - so a scale owner can still log a katori when eating out.
+ */
+export function measuresFor(db, food, units = 'katori') {
   const generic = db.measures.filter(
     (m) => m.appliesTo.includes('*') || m.appliesTo.includes(food.cat)
   );
-  const preferred = db.defaultMeasureByCategory[food.cat];
-  generic.sort((a, b) => (a.id === preferred ? -1 : b.id === preferred ? 1 : 0));
-  // Pack sizes come first for anything that arrives in a packet.
+
+  if (units === 'grams') {
+    const base = food.liquid ? 'ml' : 'g';
+    const other = food.liquid ? 'g' : 'ml';
+    generic.sort((a, b) => rank(a) - rank(b));
+    function rank(m) {
+      if (m.id === base) return 0;
+      if (m.id === other) return 1;
+      // Countable things stay near the top: nobody weighs an egg or a roti.
+      if (m.id.startsWith('piece_') || m.id.startsWith('roti') || m.id.startsWith('paratha')) return 2;
+      return 3;
+    }
+  } else {
+    const preferred = db.defaultMeasureByCategory[food.cat];
+    generic.sort((a, b) => (a.id === preferred ? -1 : b.id === preferred ? 1 : 0));
+  }
+
+  // Pack sizes come first for anything eaten straight from a packet.
   return [...packMeasures(food), ...generic];
 }
 
@@ -732,7 +929,7 @@ export function repairDay(db, opts) {
     const candidates = pool.filter((r) => r.meals.includes(slot) && !used.has(r.id));
     if (!candidates.length) continue;
 
-    let best = null;
+    const scored = [];
     for (const r of candidates) {
       const per1 = recipeNutrition(db, r, 1);
       const extras = serveWithNutrition(db, r, 1, katoriScale);
@@ -754,18 +951,46 @@ export function repairDay(db, opts) {
         (cost / Math.max(40, budgetLeft)) * 2 -
         (r.effort === 'high' ? 1.5 : r.effort === 'medium' ? 0.4 : 0);
 
-      if (!best || score > best.score) best = { recipe: r, servings, nutrition: n, cost, score };
+      scored.push({ recipe: r, servings, nutrition: n, cost, score });
     }
 
-    if (best) {
-      used.add(best.recipe.id);
+    scored.sort((a, b) => b.score - a.score);
+
+    // Three genuinely different answers beat one verdict. Picking strictly by
+    // score returns three variations on the same dal, so the runners-up are
+    // chosen to differ: the best overall, then the best cheap one, then the
+    // best quick one, filling from the ranking if those collide.
+    const options = [];
+    const take = (cand) => {
+      if (!cand || options.some((o) => o.recipe.id === cand.recipe.id)) return;
+      options.push(cand);
+    };
+    take(scored[0]);
+    take([...scored].sort((a, b) => a.cost - b.cost)[0]);
+    take([...scored].sort((a, b) => a.recipe.timeMin - b.recipe.timeMin)[0]);
+    for (const c of scored) { if (options.length >= 3) break; take(c); }
+
+    if (options.length) {
+      for (const o of options) used.add(o.recipe.id);
       suggestions.push({
         slot,
-        recipeId: best.recipe.id,
-        name: best.recipe.name,
-        servings: Number(best.servings.toFixed(2)),
-        nutrition: roundNutrition(best.nutrition),
-        cost: Math.round(best.cost),
+        options: options.map((o, i) => ({
+          recipeId: o.recipe.id,
+          name: o.recipe.name,
+          servings: Number(o.servings.toFixed(2)),
+          nutrition: roundNutrition(o.nutrition),
+          cost: Math.round(o.cost),
+          timeMin: o.recipe.timeMin,
+          why: i === 0 ? 'best fit' : o.cost === Math.min(...options.map((x) => x.cost)) ? 'cheapest'
+             : o.recipe.timeMin === Math.min(...options.map((x) => x.recipe.timeMin)) ? 'quickest' : 'another option',
+        })),
+        // The first option is what the day projects to until the user switches.
+        chosen: 0,
+        recipeId: options[0].recipe.id,
+        name: options[0].recipe.name,
+        servings: Number(options[0].servings.toFixed(2)),
+        nutrition: roundNutrition(options[0].nutrition),
+        cost: Math.round(options[0].cost),
       });
     }
   }
@@ -918,4 +1143,63 @@ export function shoppingListMinusPantry(db, list, pantry) {
     };
   });
   return { items, total: items.reduce((s, i) => s + i.cost, 0) };
+}
+
+
+/**
+ * "I want chole bhature tonight — does that work?"
+ *
+ * Answers with arithmetic rather than permission. Reports what it does to the
+ * day, and if it does not fit, what portion would, because "no" is useless
+ * and "two-thirds of a plate" is actionable.
+ */
+export function fitCheck(db, opts) {
+  const {
+    target, consumed, item, servings = 1,
+    katoriScale = 1, month = monthKey(), priceOverrides = {},
+  } = opts;
+
+  let n, cost, label;
+  if (item.kind === 'recipe') {
+    const r = db.recipesById[item.id];
+    if (!r) return null;
+    const extras = serveWithNutrition(db, r, servings, katoriScale);
+    n = addNutrition(recipeNutrition(db, r, servings), extras.nutrition);
+    cost = recipeCost(db, r, servings, month, priceOverrides) + extras.cost;
+    label = r.name;
+  } else {
+    const food = db.foodsById[item.id];
+    if (!food) return null;
+    const measure = db.measuresById[item.measureId] ?? db.measuresById.g;
+    const { storedG, addFatG } = portionToStoredGrams({ food, measure, qty: servings, katoriScale });
+    n = nutritionFor(food, storedG);
+    if (addFatG) n = addNutrition(n, nutritionFor(db.foodsById.mustard_oil, addFatG));
+    cost = costOfStoredGrams(db, food.id, storedG, month, priceOverrides);
+    label = food.name;
+  }
+
+  const kcalLeft = target.kcal - consumed.kcal;
+  const after = consumed.kcal + n.kcal;
+  const over = after - target.kcal;
+  const fits = over <= 0;
+
+  // What fraction would fit, if it does not?
+  const fitFraction = n.kcal > 0 ? Math.max(0, kcalLeft / n.kcal) : 0;
+
+  return {
+    label,
+    servings,
+    nutrition: roundNutrition(n),
+    cost: Math.round(cost),
+    kcalLeft: Math.round(kcalLeft),
+    projected: Math.round(after),
+    overBy: Math.round(Math.max(0, over)),
+    fits,
+    fitFraction: Number(fitFraction.toFixed(2)),
+    message: fits
+      ? `That fits. It puts you at ${Math.round(after)} of ${target.kcal} kcal, with ${Math.round(target.kcal - after)} still spare.`
+      : fitFraction >= 0.5
+        ? `That takes you ${Math.round(over)} kcal past today's target. About ${Math.round(fitFraction * 100)}% of it would fit — roughly ${(servings * fitFraction).toFixed(1)} servings instead of ${servings}.`
+        : `That is ${Math.round(over)} kcal past the target, which is more than today has room for. Have it tomorrow and plan the day around it, or have a small portion now and accept the overshoot.`,
+  };
 }

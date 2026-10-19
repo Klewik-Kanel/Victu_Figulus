@@ -14,10 +14,11 @@ import { dirname, join } from 'node:path';
 import {
   bmr, tdee, dailyTarget, referenceWeight, bmi,
   portionToStoredGrams, nutritionFor, roundNutrition, addNutrition,
-  pricePerKg, recipeNutrition, recipeCost, proteinValue,
+  pricePerKg, costOfStoredGrams, recipeNutrition, recipeCost, proteinValue,
   generateWeekPlan, shoppingList, buildDb, measuresFor,
   weightTrend, suggestAdjustment, formatQty,
   repairDay, spreadSurplus, pantryMatch, shoppingListMinusPantry,
+  packPlan, tillCost, recipeCostBreakdown, fitCheck,
   packMeasures, ASSUMED_STAPLES,
 } from '../js/core.js';
 
@@ -301,7 +302,13 @@ test('a generous budget is respected and a cramped one is reported, not faked', 
 
   const cramped = generateWeekPlan(db, { profile, target, month: 'nov', weeklyBudget: 200 });
   assert.equal(cramped.withinBudget, false);
-  assert.ok(cramped.budgetNote?.includes('not quietly cut'), 'must say it did not silently cut food');
+  // Two honest branches: either it is a stock-up shop, or the budget genuinely
+  // does not reach. Both must say so plainly rather than shrinking portions.
+  const note = cramped.budgetNote ?? '';
+  assert.ok(
+    note.includes('not quietly cut') || note.includes('cupboard'),
+    `budget note must explain itself, got: ${note}`
+  );
 });
 
 test('tightening the budget makes the planner choose cheaper weeks', () => {
@@ -330,12 +337,15 @@ test('dislikes are excluded', () => {
   assert.ok(!ids.includes('khichdi') && !ids.includes('poha'));
 });
 
-test('feeding more people on the same budget makes the planner economise', () => {
+test('feeding four costs less than four times one, because packs are shared', () => {
   const one = generateWeekPlan(db, { profile, target, month: 'nov', weeklyBudget: 1400, household: 1 });
   const four = generateWeekPlan(db, { profile, target, month: 'nov', weeklyBudget: 1400, household: 4 });
-  const ratio = four.totalCost / one.totalCost;
-  assert.ok(ratio < 4, `a squeezed household should undercut linear scaling, got ${ratio.toFixed(2)}x`);
-  // But per-person calories must not be the thing that gives.
+  // The real shop scales sub-linearly: one person still has to buy a whole
+  // 500 g pack of dal, and four people share the same pack of oil.
+  const tillRatio = four.tillCost / one.tillCost;
+  assert.ok(tillRatio < 4, `till cost should undercut linear scaling, got ${tillRatio.toFixed(2)}x`);
+  assert.ok(tillRatio > 1.2, `but it should still cost meaningfully more, got ${tillRatio.toFixed(2)}x`);
+  // Per-person calories must not be the thing that gives.
   assert.ok(Math.abs(four.days[0].nutrition.kcal - one.days[0].nutrition.kcal) / one.days[0].nutrition.kcal < 0.2);
 });
 
@@ -351,11 +361,21 @@ test('the shopping list consolidates, rounds to purchasable amounts and prices u
 
   for (const item of list.items) {
     assert.ok(item.buyG >= item.neededG, `${item.foodId}: buying ${item.buyG} g for ${item.neededG} g needed`);
-    // Pulses and grains round to 250 g, everything else to 100 g.
-    const step = ['pulse', 'grain', 'protein'].includes(item.category) ? 250 : 100;
-    assert.equal(item.buyG % step, 0, `${item.foodId}: ${item.buyG} g is not a ${step} g multiple`);
-    // And never round up by more than one extra pack.
-    assert.ok(item.buyG - item.neededG < step, `${item.foodId}: rounding up ${item.buyG - item.neededG} g is wasteful`);
+    const food = db.foodsById[item.foodId];
+    if (item.loose) {
+      assert.equal(item.buyG % 50, 0, `${item.foodId}: loose goods round to 50 g, got ${item.buyG}`);
+      assert.ok(item.buyG - item.neededG < 50, `${item.foodId}: over-buying loose goods`);
+    } else {
+      // Packs: you cannot buy 55 g of dal, so overshoot is expected. What must
+      // hold is that the surplus is never more than one whole extra pack.
+      const smallest = Math.min(...food.packs);
+      assert.ok(
+        item.buyG - item.neededG < Math.max(...food.packs),
+        `${item.foodId}: bought ${item.buyG} g for ${item.neededG} g - more than a full extra pack`
+      );
+      assert.ok(item.packs.every((p) => food.packs.includes(p.g)), `${item.foodId}: invented a pack size`);
+      assert.ok(smallest > 0);
+    }
     assert.ok(item.cost > 0);
   }
   assert.ok(list.total > 0);
@@ -468,6 +488,7 @@ test('day repair suggests meals for the slots still left', () => {
   assert.equal(r.verdict, 'ok');
   assert.equal(r.suggestions.length, 1);
   assert.equal(r.suggestions[0].slot, 'dinner');
+  assert.ok(r.suggestions[0].options.length >= 2, 'a choice, not a verdict');
   assert.ok(r.kcalLeft > 0);
   assert.ok(r.projectedKcal <= target.kcal * 1.12, `projected ${r.projectedKcal} should land near ${target.kcal}`);
 });
@@ -603,4 +624,190 @@ test('aliases make English and regional names findable', () => {
   assert.ok(find('bottle gourd').some((f) => f.id === 'lauki'));
   assert.ok(find('yogurt').some((f) => f.id === 'curd'));
   assert.ok(find('chickpeas').some((f) => f.id === 'kabuli_chana'));
+});
+
+// --- pack economics ---------------------------------------------------------
+
+test('twenty grams of milk costs a whole packet, not twenty grams of value', () => {
+  // The bug this whole model exists to fix.
+  const proRata = costOfStoredGrams(db, 'milk_toned', 20, 'oct', {});
+  const plan = packPlan(db, 'milk_toned', 20, 'oct', {});
+  assert.ok(proRata < 2, `pro-rata should be about a rupee, got ${proRata.toFixed(2)}`);
+  assert.equal(plan.buyG, 500, 'you buy a 500 ml packet');
+  assert.ok(plan.cost > 25, `the real cost is a packet, got ${plan.cost.toFixed(2)}`);
+  assert.equal(plan.leftoverG, 480, 'and 480 ml is left for later');
+});
+
+test('loose goods are still priced pro-rata, because they genuinely are', () => {
+  const plan = packPlan(db, 'bhindi', 180, 'oct', {});
+  assert.equal(plan.loose, true, 'bhindi is sold by weight');
+  assert.equal(plan.buyG, 200, 'rounded only to what a shopkeeper will weigh');
+  assert.ok(plan.leftoverG <= 50);
+});
+
+test('packs are chosen to cover the need with the least excess', () => {
+  // 1.2 kg of atta from [1000, 5000, 10000] should be 2 x 1 kg, not a 5 kg bag.
+  const plan = packPlan(db, 'atta', 1200, 'oct', {});
+  assert.equal(plan.buyG, 2000);
+  assert.deepEqual(plan.packs.map((p) => p.g), [1000, 1000]);
+
+  // And a need below the smallest pack still buys exactly one.
+  const tiny = packPlan(db, 'paneer', 30, 'oct', {});
+  assert.equal(tiny.buyG, 200);
+  assert.equal(tiny.packs.length, 1);
+});
+
+test('a pack plan never buys less than needed', () => {
+  for (const food of db.foods) {
+    if (food.cat === 'packaged' || food.cat === 'eatingout') continue;
+    for (const need of [1, 55, 180, 640, 1300]) {
+      const plan = packPlan(db, food.id, need, 'oct', {});
+      assert.ok(plan.buyG >= need, `${food.id}: bought ${plan.buyG} for ${need}`);
+      assert.ok(plan.leftoverG >= 0);
+    }
+  }
+});
+
+test('a recipe reports ingredient value and till cost separately', () => {
+  const r = db.recipesById.dal_tadka;
+  const b = recipeCostBreakdown(db, r, 1, 'oct', {}, {});
+  assert.ok(b.till > b.ingredients * 2, `till (${b.till}) should far exceed ingredient value (${b.ingredients}) on an empty pantry`);
+  assert.equal(b.lines.length, r.ing.length);
+  for (const line of b.lines) assert.ok(line.tillCost >= 0 && line.buyG >= 0);
+});
+
+test('a stocked pantry collapses till cost toward ingredient value', () => {
+  const r = db.recipesById.dal_tadka;
+  const empty = recipeCostBreakdown(db, r, 1, 'oct', {}, {});
+  const stocked = recipeCostBreakdown(db, r, 1, 'oct', {}, Object.fromEntries(
+    r.ing.map((i) => [i.food, { haveG: null }])
+  ));
+  assert.ok(stocked.till < empty.till, 'owning the ingredients must cost less');
+  // Nothing left to buy, so the only cost is the flat spice-and-fuel allowance.
+  assert.equal(stocked.till, 3, 'with everything in hand, only the spice allowance remains');
+  assert.ok(stocked.lines.every((l) => l.alreadyHave && l.tillCost === 0));
+});
+
+test('a week separates what you pay from what you eat', () => {
+  const plan = generateWeekPlan(db, { profile, target, month: 'nov', weeklyBudget: 1400 });
+  assert.ok(plan.tillCost > 0);
+  assert.equal(plan.eatenValue + plan.leftoverValue, plan.tillCost, 'the two parts must sum to the bill');
+  assert.ok(plan.leftoverValue > 0, 'a first shop always leaves something in the cupboard');
+});
+
+test('a stocked pantry makes the next shop much cheaper', () => {
+  const first = generateWeekPlan(db, { profile, target, month: 'nov', weeklyBudget: 1400 });
+  // Pretend everything bought last week is still in the cupboard.
+  const pantry = Object.fromEntries(first.shopping.items.map((i) => [i.foodId, { haveG: i.buyG }]));
+  const second = generateWeekPlan(db, { profile, target, month: 'nov', weeklyBudget: 1400, pantry });
+  assert.ok(second.tillCost < first.tillCost, `second shop (${second.tillCost}) should undercut the first (${first.tillCost})`);
+});
+
+// --- choices, not verdicts --------------------------------------------------
+
+test('day repair offers several options per remaining meal', () => {
+  const consumed = { kcal: 850, p: 5, c: 95, f: 45, fiber: 3 };
+  const r = repairDay(db, { profile, target, consumed, slotsLeft: ['dinner'], month: 'nov' });
+  const opts = r.suggestions[0].options;
+  assert.ok(opts.length >= 2 && opts.length <= 3, `expected 2-3 options, got ${opts.length}`);
+  const ids = opts.map((o) => o.recipeId);
+  assert.equal(new Set(ids).size, ids.length, 'options must be different dishes');
+  for (const o of opts) {
+    assert.ok(o.nutrition.kcal > 0 && o.cost >= 0 && o.name);
+    assert.ok(o.why, 'each option should say why it is there');
+  }
+});
+
+test('the options are meaningfully different, not three variations on one dish', () => {
+  const consumed = { kcal: 700, p: 10, c: 80, f: 35, fiber: 4 };
+  const r = repairDay(db, { profile, target, consumed, slotsLeft: ['dinner'], month: 'nov' });
+  const opts = r.suggestions[0].options;
+  if (opts.length >= 3) {
+    const costs = opts.map((o) => o.cost);
+    const times = opts.map((o) => o.timeMin);
+    assert.ok(new Set(costs).size > 1 || new Set(times).size > 1,
+      'options should differ on cost or time, not just name');
+  }
+});
+
+test('the headline figures follow the first option', () => {
+  const consumed = { kcal: 850, p: 5, c: 95, f: 45, fiber: 3 };
+  const r = repairDay(db, { profile, target, consumed, slotsLeft: ['dinner'], month: 'nov' });
+  const s = r.suggestions[0];
+  assert.equal(s.recipeId, s.options[0].recipeId);
+  assert.equal(s.chosen, 0);
+});
+
+// --- "I want this tonight" --------------------------------------------------
+
+test('something that fits is confirmed with the numbers', () => {
+  const consumed = { kcal: 600, p: 20, c: 70, f: 25, fiber: 6 };
+  const f = fitCheck(db, { target, consumed, item: { kind: 'recipe', id: 'dal_tadka' }, servings: 1 });
+  assert.equal(f.fits, true);
+  assert.ok(f.projected > consumed.kcal);
+  assert.match(f.message, /fits/);
+  assert.ok(f.cost >= 0);
+});
+
+test('something that does not fit says how much would', () => {
+  const consumed = { kcal: target.kcal - 300, p: 60, c: 180, f: 50, fiber: 15 };
+  const f = fitCheck(db, {
+    target, consumed,
+    item: { kind: 'food', id: 'pkg_cholebhature', measureId: db.foods.find((x) => x.id === 'pkg_cholebhature').packs ? 'pkg_cholebhature__pack0' : 'g' },
+    servings: 1,
+  });
+  assert.equal(f.fits, false);
+  assert.ok(f.overBy > 0);
+  assert.ok(f.fitFraction > 0 && f.fitFraction < 1, `a partial portion should fit, got ${f.fitFraction}`);
+  assert.match(f.message, /past the target|past today/);
+  assert.ok(/portion|tomorrow|%/.test(f.message), 'it must offer a way forward, not just a verdict');
+});
+
+test('a near miss is answered with the portion that would fit', () => {
+  // Only slightly over, so the "about N% of it would fit" branch applies.
+  const consumed = { kcal: target.kcal - 400, p: 60, c: 180, f: 50, fiber: 15 };
+  const f = fitCheck(db, { target, consumed, item: { kind: 'recipe', id: 'paneer_bhurji' }, servings: 1 });
+  if (!f.fits) {
+    assert.ok(f.fitFraction >= 0.5, `expected a near miss, got ${f.fitFraction}`);
+    assert.match(f.message, /would fit/);
+  } else {
+    assert.match(f.message, /fits/);
+  }
+});
+
+test('fit check never moralises, it reports', () => {
+  const consumed = { kcal: target.kcal, p: 40, c: 200, f: 60, fiber: 10 };
+  const f = fitCheck(db, { target, consumed, item: { kind: 'recipe', id: 'paneer_bhurji' }, servings: 1 });
+  assert.ok(!/should not|bad|unhealthy|avoid|guilt/i.test(f.message), `moralising: ${f.message}`);
+  assert.match(f.message, /kcal/);
+});
+
+// --- units ------------------------------------------------------------------
+
+test('grams mode puts the scale first, katori mode puts the bowl first', () => {
+  const dal = db.foodsById.toor_dal;
+  assert.equal(measuresFor(db, dal, 'katori')[0].id, 'katori_dal');
+  assert.equal(measuresFor(db, dal, 'grams')[0].id, 'g');
+});
+
+test('switching units never removes a measure, it only reorders', () => {
+  const dal = db.foodsById.toor_dal;
+  const a = measuresFor(db, dal, 'katori').map((m) => m.id).sort();
+  const b = measuresFor(db, dal, 'grams').map((m) => m.id).sort();
+  assert.deepEqual(a, b, 'a scale owner can still log a katori when eating out');
+});
+
+test('liquids offer millilitres first on a scale', () => {
+  const milk = db.foodsById.milk_toned;
+  const first = measuresFor(db, milk, 'grams')[0].id;
+  assert.ok(first === 'g' || first === 'ml', `got ${first}`);
+});
+
+test('purchase packs are never offered as a portion to eat', () => {
+  // toor dal has packs [500, 1000] for shopping; nobody eats 500 g of dry dal.
+  const dal = db.foodsById.toor_dal;
+  assert.ok(dal.packs?.length, 'dal should have purchase packs');
+  assert.equal(packMeasures(dal).length, 0, 'but none of them are servings');
+  // A packet of crisps genuinely is eaten by the packet.
+  assert.ok(packMeasures(db.foodsById.pkg_lays_salted).length > 0);
 });
