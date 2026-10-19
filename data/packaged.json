@@ -1,0 +1,167 @@
+{
+  "_meta": {
+    "schema": "packaged/v1",
+    "why": "Real days contain Monster and Kurkure. A tracker that only knows dal is a tracker you abandon the first time you eat like a human being. These entries exist so a bad lunch can be logged in four seconds and the rest of the day adjusted around it, rather than left unlogged and invisible.",
+    "basis": "Per 100 g (or 100 ml for drinks) from pack labels. Lay's and Monster figures are from Open Food Facts product records read directly from their database; the rest are from pack labels and are good estimates. Scanning a barcode in the app overwrites any of these with that pack's own data, permanently.",
+    "packs": "Each item lists the pack sizes actually sold in India, so logging is 'one ₹20 packet', not 'estimate the grams'.",
+    "price": "INR per kg/litre, derived from the pack price - so a ₹20 pack of 50 g is ₹400/kg. Correct them in-app like any other price.",
+    "nova": "4 means ultra-processed. Shown in the app as a quiet flag, not a scold.",
+    "updated": "2026-10-19"
+  },
+
+  "items": [
+    { "id": "pkg_lays_salted", "name": "Lay's Classic Salted", "brand": "Lay's", "cat": "packaged", "sub": "chips", "veg": true, "nova": 4, "price": 400,
+      "packs": [{ "label": "₹10 packet (25 g)", "g": 25 }, { "label": "₹20 packet (50 g)", "g": 50 }, { "label": "₹50 packet (90 g)", "g": 90 }],
+      "per100g": { "kcal": 554, "p": 7.0, "c": 51.7, "f": 35.5, "fiber": 3.5, "sugar": 2.6, "salt": 0.51 },
+      "source": "Open Food Facts 8901491101837" },
+
+    { "id": "pkg_lays_magic", "name": "Lay's India's Magic Masala", "brand": "Lay's", "cat": "packaged", "sub": "chips", "veg": true, "nova": 4, "price": 400,
+      "packs": [{ "label": "₹10 packet (25 g)", "g": 25 }, { "label": "₹20 packet (50 g)", "g": 50 }, { "label": "₹50 packet (90 g)", "g": 90 }],
+      "per100g": { "kcal": 539, "p": 6.9, "c": 53.4, "f": 33.1, "fiber": 3.4, "sugar": 2.5, "salt": 2.07 },
+      "source": "Open Food Facts 8901491101844" },
+
+    { "id": "pkg_kurkure", "name": "Kurkure Masala Munch", "brand": "Kurkure", "cat": "packaged", "sub": "namkeen", "veg": true, "nova": 4, "price": 267,
+      "packs": [{ "label": "₹10 packet (35 g)", "g": 35 }, { "label": "₹20 packet (75 g)", "g": 75 }, { "label": "₹40 packet (160 g)", "g": 160 }],
+      "per100g": { "kcal": 535, "p": 6.4, "c": 56.0, "f": 31.0, "fiber": 2.5, "sugar": 3.0, "salt": 2.4 } },
+
+    { "id": "pkg_bingo_mad", "name": "Bingo Mad Angles", "brand": "Bingo", "cat": "packaged", "sub": "chips", "veg": true, "nova": 4, "price": 400,
+      "packs": [{ "label": "₹10 packet (25 g)", "g": 25 }, { "label": "₹20 packet (50 g)", "g": 50 }],
+      "per100g": { "kcal": 525, "p": 7.0, "c": 58.0, "f": 29.0, "fiber": 2.5, "sugar": 3.5, "salt": 2.2 } },
+
+    { "id": "pkg_haldiram_bhujia", "name": "Haldiram's Aloo Bhujia", "brand": "Haldiram's", "cat": "packaged", "sub": "namkeen", "veg": true, "nova": 4, "price": 320,
+      "packs": [{ "label": "small packet (40 g)", "g": 40 }, { "label": "₹50 packet (150 g)", "g": 150 }, { "label": "bowlful (30 g)", "g": 30 }],
+      "per100g": { "kcal": 560, "p": 9.0, "c": 48.0, "f": 36.0, "fiber": 4.0, "sugar": 2.0, "salt": 2.5 } },
+
+    { "id": "pkg_namkeen_mixture", "name": "Namkeen mixture", "brand": "generic", "cat": "packaged", "sub": "namkeen", "veg": true, "nova": 4, "price": 280,
+      "packs": [{ "label": "katori (30 g)", "g": 30 }, { "label": "small packet (50 g)", "g": 50 }],
+      "per100g": { "kcal": 540, "p": 12.0, "c": 45.0, "f": 34.0, "fiber": 5.0, "sugar": 2.0, "salt": 2.3 } },
+
+    { "id": "pkg_monster", "name": "Monster Energy", "brand": "Monster", "cat": "packaged", "sub": "drink", "veg": true, "nova": 4, "price": 360, "liquid": true,
+      "packs": [{ "label": "can (350 ml)", "g": 350 }, { "label": "can (500 ml)", "g": 500 }],
+      "per100g": { "kcal": 48.6, "p": 0, "c": 12.3, "f": 0, "fiber": 0, "sugar": 11.4, "salt": 0.2 },
+      "note": "A 350 ml can is about 40 g of sugar - roughly ten teaspoons - and 170 kcal with no protein and no fibre.",
+      "source": "Open Food Facts 70847811169" },
+
+    { "id": "pkg_redbull", "name": "Red Bull", "brand": "Red Bull", "cat": "packaged", "sub": "drink", "veg": true, "nova": 4, "price": 500, "liquid": true,
+      "packs": [{ "label": "can (250 ml)", "g": 250 }],
+      "per100g": { "kcal": 45, "p": 0, "c": 11.0, "f": 0, "fiber": 0, "sugar": 11.0, "salt": 0.1 } },
+
+    { "id": "pkg_cola", "name": "Cola (Coke / Pepsi / Thums Up)", "brand": "generic", "cat": "packaged", "sub": "drink", "veg": true, "nova": 4, "price": 50, "liquid": true,
+      "packs": [{ "label": "glass (200 ml)", "g": 200 }, { "label": "can (300 ml)", "g": 300 }, { "label": "bottle (750 ml)", "g": 750 }],
+      "per100g": { "kcal": 42, "p": 0, "c": 10.6, "f": 0, "fiber": 0, "sugar": 10.6, "salt": 0.01 } },
+
+    { "id": "pkg_frooti", "name": "Mango drink (Frooti / Maaza / Slice)", "brand": "generic", "cat": "packaged", "sub": "drink", "veg": true, "nova": 4, "price": 60, "liquid": true,
+      "packs": [{ "label": "tetrapak (160 ml)", "g": 160 }, { "label": "bottle (250 ml)", "g": 250 }, { "label": "bottle (600 ml)", "g": 600 }],
+      "per100g": { "kcal": 60, "p": 0.1, "c": 14.8, "f": 0, "fiber": 0, "sugar": 14.0, "salt": 0.02 } },
+
+    { "id": "pkg_maggi", "name": "Maggi 2-Minute Noodles", "brand": "Maggi", "cat": "packaged", "sub": "instant", "veg": true, "nova": 4, "price": 200,
+      "packs": [{ "label": "1 cake (70 g)", "g": 70 }, { "label": "2 cakes (140 g)", "g": 140 }],
+      "per100g": { "kcal": 402, "p": 9.0, "c": 58.0, "f": 15.0, "fiber": 3.0, "sugar": 3.0, "salt": 4.1 },
+      "note": "One cake with the masala is roughly 280 kcal. Two cakes and a slab of butter is closer to 700." },
+
+    { "id": "pkg_parle_g", "name": "Parle-G biscuits", "brand": "Parle", "cat": "packaged", "sub": "biscuit", "veg": true, "nova": 4, "price": 100,
+      "packs": [{ "label": "₹5 packet (55 g)", "g": 55 }, { "label": "₹10 packet (110 g)", "g": 110 }, { "label": "4 biscuits (22 g)", "g": 22 }],
+      "per100g": { "kcal": 450, "p": 7.0, "c": 76.0, "f": 13.0, "fiber": 1.5, "sugar": 27.0, "salt": 0.7 } },
+
+    { "id": "pkg_marie", "name": "Marie / digestive biscuits", "brand": "generic", "cat": "packaged", "sub": "biscuit", "veg": true, "nova": 4, "price": 180,
+      "packs": [{ "label": "2 biscuits (12 g)", "g": 12 }, { "label": "4 biscuits (24 g)", "g": 24 }, { "label": "packet (120 g)", "g": 120 }],
+      "per100g": { "kcal": 440, "p": 7.5, "c": 74.0, "f": 13.0, "fiber": 3.0, "sugar": 22.0, "salt": 0.9 } },
+
+    { "id": "pkg_rusk", "name": "Rusk / toast", "brand": "generic", "cat": "packaged", "sub": "biscuit", "veg": true, "nova": 4, "price": 140,
+      "packs": [{ "label": "1 rusk (12 g)", "g": 12 }, { "label": "2 rusks (24 g)", "g": 24 }],
+      "per100g": { "kcal": 410, "p": 9.0, "c": 72.0, "f": 9.0, "fiber": 3.0, "sugar": 18.0, "salt": 0.8 } },
+
+    { "id": "pkg_dairymilk", "name": "Chocolate bar (Dairy Milk / 5 Star)", "brand": "generic", "cat": "packaged", "sub": "chocolate", "veg": true, "nova": 4, "price": 700,
+      "packs": [{ "label": "small bar (13 g)", "g": 13 }, { "label": "₹40 bar (50 g)", "g": 50 }, { "label": "large bar (110 g)", "g": 110 }],
+      "per100g": { "kcal": 535, "p": 7.3, "c": 57.0, "f": 30.0, "fiber": 2.0, "sugar": 56.0, "salt": 0.24 } },
+
+    { "id": "pkg_icecream", "name": "Ice cream (vanilla / chocolate)", "brand": "generic", "cat": "packaged", "sub": "dessert", "veg": true, "nova": 4, "price": 300,
+      "packs": [{ "label": "cup (100 ml)", "g": 60 }, { "label": "scoop (50 g)", "g": 50 }, { "label": "cone (110 g)", "g": 110 }],
+      "per100g": { "kcal": 210, "p": 3.5, "c": 24.0, "f": 11.0, "fiber": 0.5, "sugar": 22.0, "salt": 0.12 } },
+
+    { "id": "pkg_bread_white", "name": "White bread", "brand": "generic", "cat": "packaged", "sub": "bakery", "veg": true, "nova": 4, "price": 60,
+      "packs": [{ "label": "1 slice (30 g)", "g": 30 }, { "label": "2 slices (60 g)", "g": 60 }],
+      "per100g": { "kcal": 265, "p": 9.0, "c": 49.0, "f": 3.2, "fiber": 2.7, "sugar": 5.0, "salt": 1.1 } },
+
+    { "id": "pkg_peanut_butter", "name": "Peanut butter", "brand": "generic", "cat": "packaged", "sub": "spread", "veg": true, "nova": 3, "price": 450,
+      "packs": [{ "label": "1 tbsp (16 g)", "g": 16 }, { "label": "2 tbsp (32 g)", "g": 32 }],
+      "per100g": { "kcal": 588, "p": 25.0, "c": 20.0, "f": 50.0, "fiber": 6.0, "sugar": 9.0, "salt": 0.6 },
+      "note": "Ultra-processed by category, but genuinely useful protein. Not everything with a label is junk." },
+
+    { "id": "pkg_whey", "name": "Whey protein powder", "brand": "generic", "cat": "packaged", "sub": "supplement", "veg": true, "nova": 4, "price": 2200,
+      "packs": [{ "label": "1 scoop (30 g)", "g": 30 }, { "label": "2 scoops (60 g)", "g": 60 }],
+      "per100g": { "kcal": 380, "p": 75.0, "c": 8.0, "f": 5.0, "fiber": 1.0, "sugar": 4.0, "salt": 0.5 },
+      "note": "₹2200/kg looks steep until you divide by protein: about ₹2.90 per gram. Cheaper than paneer, dearer than soya." },
+
+    { "id": "pkg_curd_packaged", "name": "Packaged curd cup", "brand": "generic", "cat": "packaged", "sub": "dairy", "veg": true, "nova": 2, "price": 120,
+      "packs": [{ "label": "cup (100 g)", "g": 100 }, { "label": "cup (200 g)", "g": 200 }],
+      "per100g": { "kcal": 62, "p": 3.2, "c": 4.7, "f": 3.3, "fiber": 0, "sugar": 4.7, "salt": 0.1 } },
+
+    { "id": "pkg_samosa", "name": "Samosa", "brand": "street", "cat": "eatingout", "sub": "street", "veg": true, "nova": 4, "price": 300,
+      "packs": [{ "label": "1 samosa (70 g)", "g": 70 }, { "label": "2 samosas (140 g)", "g": 140 }],
+      "per100g": { "kcal": 310, "p": 5.0, "c": 34.0, "f": 17.0, "fiber": 3.0, "sugar": 2.0, "salt": 1.2 } },
+
+    { "id": "pkg_pakora", "name": "Pakora / bhajiya", "brand": "street", "cat": "eatingout", "sub": "street", "veg": true, "nova": 4, "price": 300,
+      "packs": [{ "label": "small plate (80 g)", "g": 80 }, { "label": "full plate (150 g)", "g": 150 }],
+      "per100g": { "kcal": 320, "p": 7.0, "c": 28.0, "f": 20.0, "fiber": 4.0, "sugar": 1.5, "salt": 1.0 } },
+
+    { "id": "pkg_vadapav", "name": "Vada pav", "brand": "street", "cat": "eatingout", "sub": "street", "veg": true, "nova": 4, "price": 250,
+      "packs": [{ "label": "1 vada pav (150 g)", "g": 150 }],
+      "per100g": { "kcal": 197, "p": 5.0, "c": 28.0, "f": 7.0, "fiber": 2.5, "sugar": 2.0, "salt": 1.1 } },
+
+    { "id": "pkg_panipuri", "name": "Pani puri / golgappa", "brand": "street", "cat": "eatingout", "sub": "street", "veg": true, "nova": 4, "price": 200,
+      "packs": [{ "label": "plate of 6 (120 g)", "g": 120 }, { "label": "plate of 10 (200 g)", "g": 200 }],
+      "per100g": { "kcal": 160, "p": 3.0, "c": 26.0, "f": 5.0, "fiber": 2.0, "sugar": 3.0, "salt": 1.3 } },
+
+    { "id": "pkg_momos", "name": "Veg momos", "brand": "street", "cat": "eatingout", "sub": "street", "veg": true, "nova": 4, "price": 350,
+      "packs": [{ "label": "plate of 6 (180 g)", "g": 180 }, { "label": "plate of 10 (300 g)", "g": 300 }],
+      "per100g": { "kcal": 180, "p": 5.5, "c": 28.0, "f": 5.0, "fiber": 2.0, "sugar": 2.0, "salt": 0.9 } },
+
+    { "id": "pkg_cholebhature", "name": "Chole bhature", "brand": "street", "cat": "eatingout", "sub": "street", "veg": true, "nova": 4, "price": 300,
+      "packs": [{ "label": "1 plate (350 g)", "g": 350 }],
+      "per100g": { "kcal": 250, "p": 7.0, "c": 30.0, "f": 11.0, "fiber": 5.0, "sugar": 2.0, "salt": 1.2 },
+      "note": "One plate is around 875 kcal. Not a reason never to eat it - a reason to know before you plan dinner." },
+
+    { "id": "pkg_pavbhaji", "name": "Pav bhaji", "brand": "street", "cat": "eatingout", "sub": "street", "veg": true, "nova": 4, "price": 260,
+      "packs": [{ "label": "1 plate (400 g)", "g": 400 }],
+      "per100g": { "kcal": 180, "p": 4.5, "c": 22.0, "f": 8.5, "fiber": 3.5, "sugar": 3.0, "salt": 1.1 } },
+
+    { "id": "pkg_paneer_tikka", "name": "Paneer tikka (restaurant)", "brand": "restaurant", "cat": "eatingout", "sub": "restaurant", "veg": true, "nova": 3, "price": 800,
+      "packs": [{ "label": "half plate (150 g)", "g": 150 }, { "label": "full plate (250 g)", "g": 250 }],
+      "per100g": { "kcal": 240, "p": 14.0, "c": 7.0, "f": 18.0, "fiber": 1.5, "sugar": 3.0, "salt": 1.0 } },
+
+    { "id": "pkg_dal_makhani", "name": "Dal makhani (restaurant)", "brand": "restaurant", "cat": "eatingout", "sub": "restaurant", "veg": true, "nova": 3, "price": 500,
+      "packs": [{ "label": "katori (150 g)", "g": 150 }, { "label": "full portion (300 g)", "g": 300 }],
+      "per100g": { "kcal": 190, "p": 7.0, "c": 15.0, "f": 11.0, "fiber": 5.0, "sugar": 2.0, "salt": 1.0 },
+      "note": "Restaurant dal makhani carries far more cream and butter than the dal you cook. Logged as its own thing for that reason." },
+
+    { "id": "pkg_veg_biryani", "name": "Veg biryani (restaurant)", "brand": "restaurant", "cat": "eatingout", "sub": "restaurant", "veg": true, "nova": 3, "price": 350,
+      "packs": [{ "label": "half plate (250 g)", "g": 250 }, { "label": "full plate (450 g)", "g": 450 }],
+      "per100g": { "kcal": 180, "p": 4.5, "c": 26.0, "f": 6.5, "fiber": 2.0, "sugar": 2.0, "salt": 1.1 } },
+
+    { "id": "pkg_butter_naan", "name": "Butter naan (restaurant)", "brand": "restaurant", "cat": "eatingout", "sub": "restaurant", "veg": true, "nova": 3, "price": 400,
+      "packs": [{ "label": "1 naan (100 g)", "g": 100 }, { "label": "2 naans (200 g)", "g": 200 }],
+      "per100g": { "kcal": 320, "p": 8.5, "c": 48.0, "f": 10.0, "fiber": 2.0, "sugar": 3.0, "salt": 1.2 } },
+
+    { "id": "pkg_masala_dosa", "name": "Masala dosa (restaurant)", "brand": "restaurant", "cat": "eatingout", "sub": "restaurant", "veg": true, "nova": 3, "price": 300,
+      "packs": [{ "label": "1 dosa (200 g)", "g": 200 }],
+      "per100g": { "kcal": 215, "p": 4.5, "c": 30.0, "f": 8.5, "fiber": 2.5, "sugar": 1.5, "salt": 1.0 } },
+
+    { "id": "pkg_chai_shop", "name": "Chai (shop, with sugar)", "brand": "street", "cat": "eatingout", "sub": "street", "veg": true, "nova": 3, "price": 100, "liquid": true,
+      "packs": [{ "label": "cutting (100 ml)", "g": 100 }, { "label": "full cup (180 ml)", "g": 180 }],
+      "per100g": { "kcal": 70, "p": 1.8, "c": 10.0, "f": 2.5, "fiber": 0, "sugar": 9.0, "salt": 0.05 },
+      "note": "Four cups a day is around 280 kcal of mostly sugar, and it rarely gets logged." },
+
+    { "id": "pkg_egg_roll", "name": "Egg roll", "brand": "street", "cat": "eatingout", "sub": "street", "veg": false, "nova": 4, "price": 350,
+      "packs": [{ "label": "1 roll (200 g)", "g": 200 }],
+      "per100g": { "kcal": 230, "p": 9.0, "c": 26.0, "f": 10.0, "fiber": 2.0, "sugar": 2.0, "salt": 1.1 } },
+
+    { "id": "pkg_chicken_biryani", "name": "Chicken biryani (restaurant)", "brand": "restaurant", "cat": "eatingout", "sub": "restaurant", "veg": false, "nova": 3, "price": 450,
+      "packs": [{ "label": "half plate (300 g)", "g": 300 }, { "label": "full plate (500 g)", "g": 500 }],
+      "per100g": { "kcal": 190, "p": 10.0, "c": 22.0, "f": 7.0, "fiber": 1.5, "sugar": 1.5, "salt": 1.2 } },
+
+    { "id": "pkg_butter_chicken", "name": "Butter chicken (restaurant)", "brand": "restaurant", "cat": "eatingout", "sub": "restaurant", "veg": false, "nova": 3, "price": 700,
+      "packs": [{ "label": "katori (150 g)", "g": 150 }, { "label": "full portion (300 g)", "g": 300 }],
+      "per100g": { "kcal": 230, "p": 13.0, "c": 7.0, "f": 17.0, "fiber": 1.0, "sugar": 4.0, "salt": 1.1 } }
+  ]
+}

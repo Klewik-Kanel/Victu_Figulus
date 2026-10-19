@@ -1,0 +1,83 @@
+{
+  "_meta": {
+    "schema": "portions/v1",
+    "why": "Nobody weighs a dal. The tracker speaks katori/roti/ladle; grams happen invisibly underneath. Every measure below resolves to grams of the food AS STORED (dry rice, dry dal, raw veg), because that is the basis foods.json uses for both nutrition and price.",
+    "calibration": "Seeded from standard NIN/ICMR household-measure conventions plus common Indian kitchenware volumes. A katori varies from house to house - the app ships a one-time 'calibrate your katori' step that scales every katori-based measure by a single factor, which is far more accurate than guessing per-dish.",
+    "katoriReference": { "small": 100, "standard": 150, "large": 200, "unit": "ml" },
+    "updated": "2026-10-19"
+  },
+
+  "measures": [
+    { "id": "katori_dal",     "label": "katori of dal (cooked)",      "appliesTo": ["pulse"],  "cookedMl": 150, "cookedG": 150, "note": "Thin-to-medium dal. Resolves to ~50 g dry dal at yieldFactor 3.0." },
+    { "id": "katori_dal_thick","label": "katori of thick dal",        "appliesTo": ["pulse"],  "cookedMl": 150, "cookedG": 165, "note": "Rajma/chole gravy, less water." },
+    { "id": "katori_sabzi",   "label": "katori of sabzi (dry)",       "appliesTo": ["veg"],    "cookedMl": 150, "cookedG": 120, "note": "Dry sabzi packs loosely." },
+    { "id": "katori_sabzi_gravy","label": "katori of sabzi (gravy)",  "appliesTo": ["veg"],    "cookedMl": 150, "cookedG": 150 },
+    { "id": "katori_rice",    "label": "katori of cooked rice",       "appliesTo": ["grain"],  "cookedMl": 150, "cookedG": 140, "note": "~50 g raw rice at yieldFactor 2.8." },
+    { "id": "katori_curd",    "label": "katori of curd",              "appliesTo": ["dairy"],  "cookedMl": 150, "cookedG": 155 },
+    { "id": "katori_poha",    "label": "katori of poha",              "appliesTo": ["grain"],  "cookedMl": 150, "cookedG": 110 },
+    { "id": "katori_upma",    "label": "katori of upma",              "appliesTo": ["grain"],  "cookedMl": 150, "cookedG": 150 },
+
+    { "id": "ladle_dal",      "label": "ladle (karchi) of dal",       "appliesTo": ["pulse"],  "cookedMl": 60,  "cookedG": 60 },
+    { "id": "serving_spoon",  "label": "serving spoon of sabzi",      "appliesTo": ["veg"],    "cookedMl": 30,  "cookedG": 28 },
+
+    { "id": "roti_small",     "label": "roti (small, ~15 cm)",        "appliesTo": ["grain"],  "cookedG": 35, "rawG": 25, "note": "Atta before water." },
+    { "id": "roti_medium",    "label": "roti (medium, ~18 cm)",       "appliesTo": ["grain"],  "cookedG": 45, "rawG": 32 },
+    { "id": "roti_large",     "label": "roti (large, ~22 cm)",        "appliesTo": ["grain"],  "cookedG": 62, "rawG": 45 },
+    { "id": "paratha_plain",  "label": "paratha (plain)",             "appliesTo": ["grain"],  "cookedG": 70, "rawG": 45, "addFatG": 5, "note": "Fat added on the tawa is counted separately and is the usual reason parathas blow a calorie target." },
+    { "id": "paratha_stuffed","label": "paratha (stuffed, aloo)",     "appliesTo": ["grain"],  "cookedG": 120, "rawG": 45, "addFatG": 7 },
+    { "id": "puri",           "label": "puri",                        "appliesTo": ["grain"],  "cookedG": 30, "rawG": 20, "addFatG": 6 },
+    { "id": "naan",           "label": "naan",                        "appliesTo": ["grain"],  "cookedG": 90, "rawG": 60, "addFatG": 4 },
+    { "id": "bread_slice",    "label": "bread slice",                 "appliesTo": ["grain"],  "cookedG": 30, "rawG": 30 },
+    { "id": "idli",           "label": "idli",                        "appliesTo": ["grain"],  "cookedG": 50, "rawG": 20 },
+    { "id": "dosa",           "label": "dosa (plain)",                "appliesTo": ["grain"],  "cookedG": 90, "rawG": 35, "addFatG": 4 },
+
+    { "id": "glass_milk",     "label": "glass of milk",               "appliesTo": ["dairy"],  "cookedMl": 200, "cookedG": 206 },
+    { "id": "cup_tea",        "label": "cup of chai",                 "appliesTo": ["dairy"],  "cookedMl": 150, "cookedG": 150, "note": "Assumes ~60 ml milk + 1 tsp sugar; the app logs chai as a composite, not as milk." },
+    { "id": "glass_buttermilk","label": "glass of chaas",             "appliesTo": ["dairy"],  "cookedMl": 200, "cookedG": 200 },
+
+    { "id": "tbsp_oil",       "label": "tablespoon of oil/ghee",      "appliesTo": ["fat"],    "cookedMl": 15,  "cookedG": 14 },
+    { "id": "tsp_oil",        "label": "teaspoon of oil/ghee",        "appliesTo": ["fat"],    "cookedMl": 5,   "cookedG": 4.7 },
+    { "id": "tsp_sugar",      "label": "teaspoon of sugar",           "appliesTo": ["sugar"],  "cookedMl": 5,   "cookedG": 5 },
+
+    { "id": "piece_paneer_cube","label": "paneer cube",               "appliesTo": ["dairy"],  "cookedG": 12 },
+    { "id": "piece_egg",      "label": "egg",                         "appliesTo": ["nonveg"], "cookedG": 50 },
+    { "id": "piece_banana",   "label": "banana (medium)",             "appliesTo": ["fruit"],  "cookedG": 120 },
+    { "id": "piece_apple",    "label": "apple (medium)",              "appliesTo": ["fruit"],  "cookedG": 180 },
+    { "id": "piece_guava",    "label": "guava",                       "appliesTo": ["fruit"],  "cookedG": 100 },
+    { "id": "piece_orange",   "label": "orange",                      "appliesTo": ["fruit"],  "cookedG": 130 },
+    { "id": "bowl_fruit",     "label": "bowl of cut fruit",           "appliesTo": ["fruit"],  "cookedMl": 200, "cookedG": 180 },
+
+    { "id": "g",              "label": "grams",                       "appliesTo": ["*"],      "cookedG": 1, "isBase": true },
+    { "id": "ml",             "label": "millilitres",                 "appliesTo": ["*"],      "cookedMl": 1, "cookedG": 1, "isBase": true }
+  ],
+
+  "defaultMeasureByCategory": {
+    "pulse":   "katori_dal",
+    "grain":   "katori_rice",
+    "veg":     "katori_sabzi",
+    "dairy":   "katori_curd",
+    "fat":     "tsp_oil",
+    "fruit":   "bowl_fruit",
+    "nonveg":  "g",
+    "protein": "g",
+    "nut":     "g",
+    "sugar":   "tsp_sugar"
+  },
+
+  "plateHeuristics": {
+    "_why": "Used by the planner to build plates that look like real Indian meals rather than macro spreadsheets, and by the logger's 'quick log a thali' shortcut.",
+    "thali_veg": [
+      { "measure": "roti_medium", "qty": 2 },
+      { "measure": "katori_dal", "qty": 1 },
+      { "measure": "katori_sabzi", "qty": 1 },
+      { "measure": "katori_curd", "qty": 1 },
+      { "measure": "tsp_oil", "qty": 2 }
+    ],
+    "thali_rice": [
+      { "measure": "katori_rice", "qty": 1.5 },
+      { "measure": "katori_dal", "qty": 1 },
+      { "measure": "katori_sabzi", "qty": 1 },
+      { "measure": "tsp_oil", "qty": 2 }
+    ]
+  }
+}

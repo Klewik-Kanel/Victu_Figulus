@@ -1,0 +1,11 @@
+{
+  "name": "victu",
+  "version": "0.1.0",
+  "private": true,
+  "description": "An Indian diet tracker that counts katoris and rupees, not just calories.",
+  "type": "module",
+  "scripts": {
+    "start": "python3 -m http.server 8777",
+    "test": "node --test tests/*.mjs"
+  }
+}

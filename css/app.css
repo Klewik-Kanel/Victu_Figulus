@@ -1,0 +1,615 @@
+/* ===========================================================================
+   Victu - steel and ink.
+   The thali is stainless steel, so the app is too: cool greys, not the warm
+   cream-and-terracotta every food app reaches for. Two accents, each with one
+   job: indigo for energy, madder red for money. Both are Indian dye colours,
+   which is the only decorative liberty taken here.
+   =========================================================================== */
+
+:root {
+  --steel-00: #FFFFFF;
+  --steel-05: #F2F4F6;
+  --steel-10: #E7EBEE;
+  --steel-20: #D5DBE1;
+  --steel-30: #B4BDC6;
+  --ink:      #141A21;
+  --ink-70:   #434E59;
+  --ink-45:   #6E7883;
+
+  --indigo:   #2B3A8F;
+  --indigo-soft: #DDE1F4;
+  --madder:   #9E2B25;
+  --madder-soft: #F6E2E0;
+  --moss:     #3C6B4C;
+  --amber:    #8A5A12;
+
+  --page: var(--steel-05);
+  --surface: var(--steel-00);
+  --line: var(--steel-20);
+  --hairline: var(--steel-10);
+
+  --display: 'Bricolage Grotesque', 'Helvetica Neue', Arial, sans-serif;
+  --body: 'Spline Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'Spline Sans Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-pill: 999px;
+  --gut: 18px;
+  --nav-h: 62px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --steel-00: #171E26;
+    --steel-05: #0F141A;
+    --steel-10: #212A34;
+    --steel-20: #2E3945;
+    --steel-30: #46535F;
+    --ink:      #EDF1F4;
+    --ink-70:   #B2BDC7;
+    --ink-45:   #8291A0;
+    --indigo:   #8E9DEC;
+    --indigo-soft: #232C4C;
+    --madder:   #E08B84;
+    --madder-soft: #3A2220;
+    --moss:     #7FB38E;
+    --amber:    #D6A445;
+    --page: var(--steel-05);
+    --surface: var(--steel-00);
+    --line: var(--steel-20);
+    --hairline: var(--steel-10);
+  }
+}
+:root[data-theme="dark"] {
+  --steel-00: #171E26; --steel-05: #0F141A; --steel-10: #212A34;
+  --steel-20: #2E3945; --steel-30: #46535F;
+  --ink: #EDF1F4; --ink-70: #B2BDC7; --ink-45: #8291A0;
+  --indigo: #8E9DEC; --indigo-soft: #232C4C;
+  --madder: #E08B84; --madder-soft: #3A2220;
+  --moss: #7FB38E; --amber: #D6A445;
+  --page: var(--steel-05); --surface: var(--steel-00);
+  --line: var(--steel-20); --hairline: var(--steel-10);
+}
+
+* { box-sizing: border-box; }
+
+/* `display: flex` on .sheet and .nav would otherwise beat the hidden
+   attribute, leaving an invisible panel that still eats taps. */
+[hidden] { display: none !important; }
+
+html, body { margin: 0; padding: 0; }
+
+body {
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom));
+}
+
+.screen {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 0 var(--gut) 40px;
+  animation: rise .22s ease-out;
+}
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+@media (prefers-reduced-motion: reduce) {
+  .screen { animation: none; }
+  * { transition: none !important; }
+}
+
+/* ---------- type ---------- */
+
+h1, h2, h3 { font-family: var(--display); font-weight: 700; letter-spacing: -.02em; margin: 0; }
+
+.wordmark {
+  font-size: 2.6rem;
+  font-weight: 800;
+  letter-spacing: -.05em;
+  margin-bottom: .1em;
+}
+
+.bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: calc(env(safe-area-inset-top) + 20px) 0 14px;
+}
+.bar > div:first-child { flex: 1; min-width: 0; }
+.bar-title { font-size: 1.5rem; }
+.bar-sub { margin: 2px 0 0; color: var(--ink-45); font-size: .86rem; }
+
+.section-head {
+  font-size: .98rem;
+  font-weight: 700;
+  margin: 28px 0 8px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.note { color: var(--ink-45); font-size: .83rem; margin: 10px 0 0; }
+.hint { color: var(--ink-45); font-size: .76rem; display: block; margin-top: 3px; }
+
+/* ---------- the ring: meal slots, not a generic donut ---------- */
+
+.ring-wrap { position: relative; width: min(280px, 72vw); margin: 10px auto 2px; }
+.ring { width: 100%; height: auto; display: block; transform: rotate(-90deg); }
+.ring-track { fill: none; stroke: var(--hairline); stroke-width: 15; }
+.ring-arc { fill: none; stroke-width: 15; stroke-linecap: butt; transition: stroke-dashoffset .4s ease; }
+.ring-gap { fill: none; stroke: var(--page); stroke-width: 15; }
+
+.ring-centre {
+  position: absolute; inset: 0;
+  display: grid; place-content: center; text-align: center;
+  pointer-events: none;
+}
+.ring-centre strong {
+  display: block;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 3.3rem;
+  line-height: .92;
+  letter-spacing: -.045em;
+  font-variant-numeric: tabular-nums;
+}
+.ring-centre span { font-size: .8rem; color: var(--ink-45); }
+.ring-centre.is-over strong { color: var(--madder); }
+
+.legend {
+  list-style: none; margin: 4px 0 0; padding: 0;
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px;
+}
+.legend li { font-size: .78rem; color: var(--ink-45); display: flex; align-items: center; gap: 5px; }
+.legend i { width: 9px; height: 9px; border-radius: 2px; flex: none; }
+
+/* ---------- meters ---------- */
+
+.meters { margin-top: 20px; display: grid; gap: 12px; }
+.meter-head { display: flex; justify-content: space-between; align-items: baseline; font-size: .85rem; }
+.meter-head span { color: var(--ink-70); }
+.meter-head b { font-family: var(--mono); font-weight: 500; font-size: .84rem; }
+.meter-bar { height: 7px; background: var(--hairline); border-radius: var(--r-pill); overflow: hidden; margin-top: 5px; }
+.meter-bar i { display: block; height: 100%; background: var(--indigo); border-radius: var(--r-pill); transition: width .35s ease; }
+.meter-bar-money i { background: var(--madder); }
+.meter-bar i.is-over { background: var(--madder); }
+
+/* ---------- ledger lists: hairlines, not cards ---------- */
+
+.ledger, .ledger-plain { list-style: none; margin: 0; padding: 0; }
+
+.ledger li, .ledger-plain > div {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.ledger li:first-child, .ledger-plain > div:first-child { border-top: 1px solid var(--hairline); }
+
+.led-main { flex: 1; min-width: 0; }
+.led-name { display: block; font-weight: 500; }
+.led-sub { display: block; font-size: .78rem; color: var(--ink-45); }
+.led-fig { font-family: var(--mono); font-size: .88rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.led-fig-money { color: var(--madder); }
+.led-del {
+  background: none; border: 0; color: var(--ink-45); font-size: 1.1rem;
+  padding: 0 2px; cursor: pointer; line-height: 1;
+}
+.ledger .empty, .empty {
+  padding: 22px 0; color: var(--ink-45); font-size: .9rem;
+  border-bottom: 1px solid var(--hairline);
+}
+
+/* ---------- buttons ---------- */
+
+.btn {
+  font: inherit; font-weight: 500;
+  padding: 10px 15px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease;
+}
+.btn:hover { border-color: var(--steel-30); }
+.btn:active { background: var(--steel-10); }
+.btn-primary { background: var(--indigo); border-color: var(--indigo); color: var(--steel-05); }
+.btn-primary:hover { filter: brightness(1.08); }
+.btn-quiet { background: none; border-color: transparent; color: var(--ink-45); padding: 8px 10px; }
+.btn-quiet:hover { color: var(--ink); border-color: var(--line); }
+.btn-danger { color: var(--madder); border-color: var(--madder-soft); }
+.btn-block { display: block; width: 100%; margin-top: 18px; }
+.link { background: none; border: 0; color: var(--indigo); font: inherit; font-size: .83rem; cursor: pointer; padding: 0; }
+
+.btn-fab {
+  position: fixed;
+  left: 50%; transform: translateX(-50%);
+  bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 14px);
+  z-index: 40;
+  box-shadow: 0 6px 20px rgba(20, 26, 33, .22);
+  padding: 13px 28px;
+  border-radius: var(--r-pill);
+  font-weight: 600;
+  width: auto;
+  margin: 0;
+}
+
+.chip {
+  font: inherit; font-size: .83rem;
+  padding: 7px 13px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: var(--r-pill);
+  color: var(--ink-70);
+  cursor: pointer;
+}
+.chip:hover { border-color: var(--indigo); color: var(--indigo); }
+.plate-shortcuts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 22px; }
+
+/* Clear the floating Log food button so the last logged row stays readable. */
+#today { padding-bottom: 96px; }
+
+/* ---------- forms ---------- */
+
+.form { display: grid; gap: 22px; }
+fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 12px; }
+legend { font-family: var(--display); font-weight: 700; font-size: .95rem; padding: 0 0 2px; }
+.field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); gap: 12px; }
+.field { display: block; }
+.field > span { display: block; font-size: .82rem; color: var(--ink-70); margin-bottom: 5px; }
+
+input[type="text"], input[type="number"], input[type="search"], select {
+  font: inherit; width: 100%;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--ink);
+}
+input:focus-visible, select:focus-visible, button:focus-visible, label:focus-within {
+  outline: 2px solid var(--indigo);
+  outline-offset: 2px;
+}
+
+.seg { display: flex; gap: 0; border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; background: var(--surface); }
+.seg-wide { width: 100%; }
+.seg label { flex: 1; position: relative; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg span {
+  display: block; text-align: center; padding: 10px 6px;
+  font-size: .85rem; color: var(--ink-70); cursor: pointer;
+  border-left: 1px solid var(--hairline);
+}
+.seg label:first-child span { border-left: 0; }
+.seg input:checked + span { background: var(--indigo); color: #fff; font-weight: 500; }
+
+.inline-form { display: flex; gap: 8px; align-items: stretch; }
+.inline-form input { flex: 1; }
+.row-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.preview {
+  background: var(--indigo-soft);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  font-size: .88rem;
+}
+.preview b { font-family: var(--mono); font-weight: 500; }
+.preview ul { margin: 8px 0 0; padding-left: 18px; }
+.preview li { margin-top: 4px; }
+
+.setup { max-width: 520px; }
+.setup-inner { padding-top: calc(env(safe-area-inset-top) + 36px); }
+.setup-lede { color: var(--ink-45); margin: 0 0 26px; max-width: 34ch; }
+
+/* ---------- plan ---------- */
+
+.budget-strip {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 12px; padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+}
+.budget-strip .bs-fig { font-family: var(--display); font-weight: 700; font-size: 1.5rem; letter-spacing: -.03em; }
+.budget-strip .bs-lab { font-size: .8rem; color: var(--ink-45); }
+.budget-strip.is-over { background: var(--madder-soft); border-color: var(--madder-soft); }
+.budget-strip.is-over .bs-fig { color: var(--madder); }
+
+.callout {
+  background: var(--surface);
+  border-left: 3px solid var(--indigo);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  padding: 13px 15px;
+  font-size: .9rem;
+}
+.callout.is-warn { border-left-color: var(--madder); }
+
+.tabs { display: flex; gap: 6px; overflow-x: auto; margin: 20px -2px 14px; padding: 2px; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  font: inherit; font-size: .82rem;
+  flex: none; padding: 7px 13px;
+  border: 1px solid var(--line); background: var(--surface);
+  border-radius: var(--r-pill); color: var(--ink-70); cursor: pointer;
+}
+.tab[aria-selected="true"] { background: var(--ink); border-color: var(--ink); color: var(--page); font-weight: 500; }
+
+.plan-day { display: grid; gap: 0; }
+.pd-meal { padding: 13px 0; border-bottom: 1px solid var(--hairline); }
+.pd-meal:first-child { border-top: 1px solid var(--hairline); }
+.pd-top { display: flex; align-items: baseline; gap: 10px; }
+.pd-slot { font-size: .72rem; color: var(--ink-45); width: 68px; flex: none; }
+.pd-name { flex: 1; font-weight: 500; }
+.pd-figs { font-family: var(--mono); font-size: .82rem; color: var(--ink-70); white-space: nowrap; }
+.pd-with { font-size: .78rem; color: var(--ink-45); margin: 3px 0 0 78px; }
+.pd-totals {
+  display: flex; gap: 16px; padding: 14px 0 0;
+  font-family: var(--mono); font-size: .82rem; color: var(--ink-70);
+}
+
+/* ---------- recipes ---------- */
+
+.filters { display: grid; gap: 10px; margin-bottom: 18px; }
+.recipe-list { list-style: none; margin: 0; padding: 0; }
+.recipe { border-bottom: 1px solid var(--hairline); }
+.recipe:first-child { border-top: 1px solid var(--hairline); }
+.recipe-sum {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 13px 0; cursor: pointer; list-style: none;
+}
+.recipe-sum::-webkit-details-marker { display: none; }
+.recipe-sum .r-name { flex: 1; font-weight: 500; }
+.recipe-sum .r-figs { font-family: var(--mono); font-size: .8rem; color: var(--ink-70); white-space: nowrap; }
+.r-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 3px; }
+.r-tag { font-size: .7rem; padding: 2px 7px; border-radius: var(--r-pill); background: var(--steel-10); color: var(--ink-45); }
+.r-tag.is-peak { background: color-mix(in oklab, var(--moss) 18%, transparent); color: var(--moss); }
+.r-tag.is-off { background: var(--madder-soft); color: var(--madder); }
+.recipe-body { padding: 4px 0 18px; }
+.scale-row { display: flex; align-items: center; gap: 8px; margin: 0 0 14px; font-size: .85rem; }
+.scale-row input { width: 64px; }
+.ing-list { list-style: none; margin: 0 0 14px; padding: 0; }
+.ing-list li { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; font-size: .87rem; border-bottom: 1px dotted var(--hairline); }
+.ing-list .ing-q { font-family: var(--mono); font-size: .83rem; color: var(--ink-70); }
+.steps { margin: 0; padding-left: 20px; font-size: .9rem; color: var(--ink-70); }
+.steps li { margin-bottom: 7px; }
+.r-note { font-size: .85rem; color: var(--ink-45); margin-top: 12px; font-style: italic; }
+
+/* ---------- trend ---------- */
+
+.trend { width: 100%; height: auto; background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--r-md); margin-top: 12px; }
+.trend-dot { fill: var(--steel-30); }
+.trend-line { fill: none; stroke: var(--indigo); stroke-width: 2; stroke-linejoin: round; }
+
+/* ---------- log sheet ---------- */
+
+.sheet {
+  position: fixed; inset: 0; z-index: 60;
+  background: color-mix(in oklab, var(--ink) 38%, transparent);
+  display: flex; align-items: flex-end;
+}
+.sheet-panel {
+  background: var(--page);
+  width: 100%; max-width: 560px; margin: 0 auto;
+  max-height: 88vh; overflow-y: auto;
+  border-radius: 16px 16px 0 0;
+  padding: 0 var(--gut) calc(env(safe-area-inset-bottom) + 20px);
+  animation: slide .2s ease-out;
+}
+@keyframes slide { from { transform: translateY(14px); } }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 0 12px; position: sticky; top: 0; background: var(--page); }
+.sheet-head h2 { font-size: 1.15rem; }
+#food-search { margin-bottom: 10px; }
+#meal-pick { margin-bottom: 14px; }
+
+.results { list-style: none; margin: 0; padding: 0; }
+.results li { border-bottom: 1px solid var(--hairline); }
+.results button {
+  width: 100%; text-align: left; background: none; border: 0;
+  font: inherit; padding: 11px 2px; cursor: pointer; color: var(--ink);
+  display: flex; align-items: baseline; gap: 10px;
+}
+.results .res-name { flex: 1; }
+.results .res-sub { font-size: .78rem; color: var(--ink-45); }
+.results .res-fig { font-family: var(--mono); font-size: .8rem; color: var(--ink-45); }
+.results button:hover { background: var(--steel-10); }
+
+.portion-pad { padding: 4px 0 8px; }
+.pp-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+.pp-name { font-family: var(--display); font-weight: 700; font-size: 1.1rem; }
+
+/* Katori sizes as actual circles - faster to hit than a dropdown, and it
+   matches how you think about a serving. */
+.katori-row { display: flex; align-items: flex-end; gap: 14px; margin-bottom: 16px; }
+.katori {
+  border: 2px solid var(--line); background: var(--surface);
+  border-radius: 50%; cursor: pointer; display: grid; place-content: center;
+  font-size: .68rem; color: var(--ink-45); font-family: var(--mono); padding: 0;
+}
+.katori[data-size="small"]    { width: 50px; height: 50px; }
+.katori[data-size="standard"] { width: 64px; height: 64px; }
+.katori[data-size="large"]    { width: 78px; height: 78px; }
+.katori[aria-pressed="true"] { border-color: var(--indigo); background: var(--indigo-soft); color: var(--indigo); font-weight: 500; }
+
+.measure-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-bottom: 16px; }
+.measure-btn {
+  font: inherit; font-size: .82rem; text-align: left;
+  padding: 9px 11px; border: 1px solid var(--line); background: var(--surface);
+  border-radius: var(--r-md); cursor: pointer; color: var(--ink-70);
+}
+.measure-btn[aria-pressed="true"] { border-color: var(--indigo); background: var(--indigo-soft); color: var(--indigo); font-weight: 500; }
+
+.qty-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.qty-row input { width: 86px; }
+.qty-step { width: 42px; height: 42px; font-size: 1.2rem; padding: 0; }
+.pp-readout {
+  display: flex; gap: 18px; flex-wrap: wrap;
+  font-family: var(--mono); font-size: .85rem; color: var(--ink-70);
+  padding: 12px 0 16px; border-top: 1px solid var(--hairline);
+}
+.pp-readout b { color: var(--ink); font-weight: 500; }
+
+/* ---------- nav ---------- */
+
+.nav {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+  height: calc(var(--nav-h) + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  display: flex;
+  background: color-mix(in oklab, var(--surface) 92%, transparent);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--hairline);
+}
+.nav-btn {
+  flex: 1; background: none; border: 0; font: inherit; font-size: .78rem;
+  color: var(--ink-45); cursor: pointer; padding-top: 4px;
+  border-top: 2px solid transparent; margin-top: -1px;
+}
+.nav-btn.is-on { color: var(--indigo); font-weight: 600; border-top-color: var(--indigo); }
+
+/* ---------- toast ---------- */
+
+.toast {
+  position: fixed; z-index: 70;
+  left: 50%; transform: translateX(-50%);
+  bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 76px);
+  background: var(--ink); color: var(--page);
+  padding: 10px 16px; border-radius: var(--r-pill);
+  font-size: .85rem; max-width: 86vw; text-align: center;
+}
+
+/* ---------- day repair ---------- */
+
+.repair {
+  margin-top: 22px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-left: 3px solid var(--indigo);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  padding: 14px 16px;
+}
+.repair.is-over { border-left-color: var(--madder); background: var(--madder-soft); }
+.repair.is-tight { border-left-color: var(--amber); }
+.repair-msg { margin: 0 0 12px; font-size: .9rem; }
+.repair-pick {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 9px 0; border-top: 1px solid var(--hairline);
+}
+.repair-pick .rp-slot { font-size: .72rem; color: var(--ink-45); width: 62px; flex: none; }
+.repair-pick .rp-name { flex: 1; font-weight: 500; font-size: .92rem; }
+.repair-pick .rp-figs { font-family: var(--mono); font-size: .78rem; color: var(--ink-70); white-space: nowrap; }
+.repair .row-actions { margin-top: 12px; }
+
+.chip-accent { border-color: var(--indigo); color: var(--indigo); font-weight: 500; }
+
+/* ---------- search row and scanning ---------- */
+
+.search-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.search-row input { flex: 1; }
+
+.scan-pane {
+  background: var(--surface); border: 1px solid var(--hairline);
+  border-radius: var(--r-md); padding: 14px; margin-bottom: 14px;
+}
+#scan-video {
+  width: 100%; max-height: 240px; object-fit: cover;
+  border-radius: var(--r-sm); background: var(--steel-10); display: block;
+}
+.scan-pane .note { margin: 8px 0 12px; }
+.scan-pane .inline-form { margin-bottom: 10px; }
+
+/* ---------- kitchen ---------- */
+
+#kitchen-mode { margin-bottom: 18px; }
+#pantry-results { margin-bottom: 8px; }
+#pantry-results:empty { display: none; }
+
+
+
+.cook-row { display: flex; align-items: baseline; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--hairline); }
+.cook-row:first-child { border-top: 1px solid var(--hairline); }
+.cook-main { flex: 1; min-width: 0; }
+.cook-name { font-weight: 500; display: block; }
+.cook-sub { font-size: .78rem; color: var(--ink-45); display: block; margin-top: 2px; }
+.cook-sub .miss { color: var(--amber); }
+.cook-figs { font-family: var(--mono); font-size: .8rem; color: var(--ink-70); white-space: nowrap; }
+
+.cover {
+  width: 34px; height: 34px; flex: none; position: relative;
+  display: grid; place-content: center;
+  font-family: var(--mono); font-size: .62rem; color: var(--ink-45);
+}
+.cover svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+.cover .cov-track { fill: none; stroke: var(--hairline); stroke-width: 3; }
+.cover .cov-fill { fill: none; stroke: var(--moss); stroke-width: 3; stroke-linecap: round; }
+.cover.is-partial .cov-fill { stroke: var(--amber); }
+
+.badge-scan { font-size: .68rem; padding: 2px 6px; border-radius: var(--r-pill); background: var(--indigo-soft); color: var(--indigo); }
+.badge-nova { font-size: .68rem; padding: 2px 6px; border-radius: var(--r-pill); background: var(--madder-soft); color: var(--madder); }
+
+
+/* ---------- pantry items ----------
+   Two lines per item on purpose: the name owns the first, the controls own
+   the second. The earlier single-row version collided because the base
+   `input[type=number] { width: 100% }` rule out-specified the class meant to
+   make the box narrow - hence input.pi-qty below, which matches it.       */
+
+.plist { list-style: none; margin: 0; padding: 0; }
+.pitem { display: block; padding: 14px 0; border-bottom: 1px solid var(--hairline); }
+.pitem:first-child { border-top: 1px solid var(--hairline); }
+
+.pi-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.pi-name { font-weight: 500; min-width: 0; }
+.pi-del {
+  flex: none; width: 26px; height: 26px; padding: 0;
+  background: none; border: 0; border-radius: var(--r-sm);
+  font: inherit; font-size: .9rem; line-height: 1;
+  color: var(--ink-45); cursor: pointer;
+}
+.pi-del:hover { color: var(--madder); background: var(--madder-soft); }
+
+.pi-ctl { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+
+.pi-seg {
+  display: inline-flex; flex: none;
+  border: 1px solid var(--line); border-radius: var(--r-pill);
+  overflow: hidden; background: var(--surface);
+}
+.pi-seg button {
+  font: inherit; font-size: .78rem;
+  padding: 6px 14px; border: 0; background: none;
+  color: var(--ink-45); cursor: pointer; white-space: nowrap;
+}
+.pi-seg button + button { border-left: 1px solid var(--hairline); }
+.pi-seg button[aria-pressed="true"] { background: var(--indigo); color: var(--steel-05); font-weight: 500; }
+
+.pi-amount { display: flex; align-items: center; gap: 4px; }
+
+input.pi-qty {
+  width: 72px; padding: 6px 8px;
+  font-family: var(--mono); font-size: .82rem; text-align: right;
+}
+input.pi-qty::-webkit-outer-spin-button,
+input.pi-qty::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+input.pi-qty { -moz-appearance: textfield; appearance: textfield; }
+
+.pi-unit { font-size: .78rem; color: var(--ink-45); margin-right: 2px; }
+.pi-step {
+  width: 32px; height: 32px; flex: none; padding: 0;
+  font: inherit; font-size: 1rem; line-height: 1;
+  border: 1px solid var(--line); background: var(--surface);
+  border-radius: var(--r-sm); color: var(--ink-70); cursor: pointer;
+}
+.pi-step:hover { border-color: var(--indigo); color: var(--indigo); }
+
+.pantry-empty { padding: 28px 0; border-top: 1px solid var(--hairline); }
+.pantry-empty .pe-title { margin: 0; font-weight: 500; }
+.pantry-empty .note { margin-top: 6px; max-width: 42ch; }
+
+#pantry-results button[disabled] { opacity: .45; cursor: default; }
+#pantry-results button[disabled]:hover { background: none; }

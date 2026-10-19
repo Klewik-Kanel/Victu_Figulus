@@ -1,0 +1,58 @@
+{
+  "_meta": {
+    "schema": "seasonality/v1",
+    "region": "north_india_plains",
+    "regionLabel": "North India plains (Delhi/NCR baseline)",
+    "why": "Drives two things: recipe suggestions (a sarson-saag recipe should not surface in June) and price (in-season produce is cheaper, which is what makes a tight budget workable).",
+    "scale": "peak = cheapest and best, available = present but pricier, scarce = cold-storage or imported, treat as expensive, off = don't suggest",
+    "extensible": "Add sibling objects keyed by region id to support other parts of India; the app reads profile.region and falls back to north_india_plains.",
+    "updated": "2026-10-19"
+  },
+
+  "months": ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"],
+
+  "produce": {
+    "spinach":     { "jan":"peak","feb":"peak","mar":"available","apr":"scarce","may":"off","jun":"off","jul":"available","aug":"available","sep":"available","oct":"available","nov":"peak","dec":"peak" },
+    "methi":       { "jan":"peak","feb":"peak","mar":"available","apr":"scarce","may":"off","jun":"off","jul":"scarce","aug":"scarce","sep":"available","oct":"available","nov":"peak","dec":"peak" },
+    "sarson":      { "jan":"peak","feb":"peak","mar":"available","apr":"off","may":"off","jun":"off","jul":"off","aug":"off","sep":"off","oct":"scarce","nov":"available","dec":"peak" },
+    "cauliflower": { "jan":"peak","feb":"peak","mar":"available","apr":"scarce","may":"off","jun":"off","jul":"scarce","aug":"scarce","sep":"available","oct":"available","nov":"peak","dec":"peak" },
+    "cabbage":     { "jan":"peak","feb":"peak","mar":"available","apr":"scarce","may":"scarce","jun":"off","jul":"scarce","aug":"scarce","sep":"available","oct":"available","nov":"peak","dec":"peak" },
+    "carrot":      { "jan":"peak","feb":"peak","mar":"available","apr":"scarce","may":"scarce","jun":"scarce","jul":"scarce","aug":"scarce","sep":"scarce","oct":"available","nov":"peak","dec":"peak" },
+    "peas":        { "jan":"peak","feb":"peak","mar":"available","apr":"off","may":"off","jun":"off","jul":"off","aug":"off","sep":"off","oct":"scarce","nov":"available","dec":"peak" },
+    "radish":      { "jan":"peak","feb":"peak","mar":"available","apr":"scarce","may":"off","jun":"off","jul":"scarce","aug":"available","sep":"available","oct":"peak","nov":"peak","dec":"peak" },
+    "capsicum":    { "jan":"peak","feb":"peak","mar":"peak","apr":"available","may":"available","jun":"scarce","jul":"scarce","aug":"scarce","sep":"available","oct":"available","nov":"peak","dec":"peak" },
+    "beans":       { "jan":"available","feb":"peak","mar":"peak","apr":"available","may":"scarce","jun":"scarce","jul":"available","aug":"available","sep":"available","oct":"available","nov":"available","dec":"available" },
+    "beetroot":    { "jan":"peak","feb":"peak","mar":"available","apr":"available","may":"scarce","jun":"scarce","jul":"scarce","aug":"available","sep":"available","oct":"available","nov":"peak","dec":"peak" },
+
+    "bhindi":      { "jan":"off","feb":"scarce","mar":"available","apr":"peak","may":"peak","jun":"peak","jul":"peak","aug":"peak","sep":"available","oct":"available","nov":"scarce","dec":"off" },
+    "lauki":       { "jan":"scarce","feb":"scarce","mar":"available","apr":"peak","may":"peak","jun":"peak","jul":"peak","aug":"peak","sep":"peak","oct":"available","nov":"available","dec":"scarce" },
+    "tinda":       { "jan":"off","feb":"off","mar":"scarce","apr":"available","may":"peak","jun":"peak","jul":"peak","aug":"peak","sep":"available","oct":"scarce","nov":"off","dec":"off" },
+    "karela":      { "jan":"off","feb":"scarce","mar":"available","apr":"peak","may":"peak","jun":"peak","jul":"peak","aug":"peak","sep":"available","oct":"scarce","nov":"off","dec":"off" },
+    "cucumber":    { "jan":"scarce","feb":"available","mar":"available","apr":"peak","may":"peak","jun":"peak","jul":"peak","aug":"available","sep":"available","oct":"available","nov":"scarce","dec":"scarce" },
+    "pumpkin":     { "jan":"available","feb":"available","mar":"available","apr":"peak","may":"peak","jun":"peak","jul":"peak","aug":"peak","sep":"peak","oct":"peak","nov":"available","dec":"available" },
+
+    "potato":      { "jan":"peak","feb":"peak","mar":"peak","apr":"available","may":"available","jun":"available","jul":"available","aug":"available","sep":"available","oct":"available","nov":"available","dec":"peak" },
+    "onion":       { "jan":"available","feb":"peak","mar":"peak","apr":"peak","may":"available","jun":"available","jul":"available","aug":"scarce","sep":"scarce","oct":"scarce","nov":"scarce","dec":"available" },
+    "tomato":      { "jan":"peak","feb":"peak","mar":"available","apr":"available","may":"available","jun":"scarce","jul":"scarce","aug":"scarce","sep":"available","oct":"available","nov":"peak","dec":"peak" },
+    "baingan":     { "jan":"available","feb":"available","mar":"peak","apr":"peak","may":"peak","jun":"available","jul":"available","aug":"available","sep":"peak","oct":"peak","nov":"available","dec":"available" },
+
+    "banana":      { "jan":"peak","feb":"peak","mar":"peak","apr":"peak","may":"peak","jun":"peak","jul":"peak","aug":"peak","sep":"peak","oct":"peak","nov":"peak","dec":"peak" },
+    "papaya":      { "jan":"available","feb":"available","mar":"peak","apr":"peak","may":"peak","jun":"available","jul":"available","aug":"available","sep":"available","oct":"peak","nov":"peak","dec":"available" },
+    "guava":       { "jan":"peak","feb":"peak","mar":"available","apr":"off","may":"off","jun":"off","jul":"scarce","aug":"available","sep":"available","oct":"available","nov":"peak","dec":"peak" },
+    "apple":       { "jan":"available","feb":"available","mar":"scarce","apr":"scarce","may":"scarce","jun":"scarce","jul":"available","aug":"peak","sep":"peak","oct":"peak","nov":"peak","dec":"peak" },
+    "orange":      { "jan":"peak","feb":"peak","mar":"available","apr":"off","may":"off","jun":"off","jul":"off","aug":"off","sep":"scarce","oct":"available","nov":"peak","dec":"peak" }
+  },
+
+  "priceMultiplier": {
+    "_why": "Applied to the seeded base price in foods.json so a plan generated in June doesn't cost June prices at January rates. Crude but directionally right, and overridden the moment the user corrects a price by hand.",
+    "peak": 0.8,
+    "available": 1.0,
+    "scarce": 1.6,
+    "off": 2.2
+  },
+
+  "notes": {
+    "onion_2026": "Onion is unusually expensive this season - national retail ~Rs 52/kg, up ~90% year-on-year, Delhi-NCR crossing Rs 60/kg. The planner is told to avoid onion-heavy gravies while this holds. Correct the price in-app once it settles.",
+    "leafy_winter": "Dec-Feb is when palak, methi and sarson are cheapest and most nutritious per rupee in the North. The planner leans hard on them in winter, which is also when a tight budget is easiest to hit."
+  }
+}

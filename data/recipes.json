@@ -1,0 +1,1051 @@
+{
+  "_meta": {
+    "schema": "recipes/v1",
+    "basis": "Ingredient quantities are grams PER SERVING of the food as stored (dry dal, raw veg, raw atta) so that nutrition and cost both compute from foods.json without a second source of truth. Scaling to 1-6 people is a multiplication; the app rounds the shopping list, not the recipe.",
+    "servesBasis": 1,
+    "why_no_calories_stored": "Calories are computed, never typed. A hand-typed kcal that disagrees with the ingredient list is the fastest way to make a tracker lie.",
+    "updated": "2026-10-19"
+  },
+
+  "recipes": [
+    {
+      "id": "dal_tadka",
+      "name": "Dal tadka",
+      "veg": true,
+      "meals": ["lunch","dinner"],
+      "seasons": ["all"],
+      "effort": "low",
+      "timeMin": 30,
+      "ing": [
+        { "food": "toor_dal", "g": 55 },
+        { "food": "tomato", "g": 40 },
+        { "food": "onion", "g": 25 },
+        { "food": "ghee", "g": 6 }
+      ],
+      "serveWith": ["roti_medium:2", "katori_rice:1"],
+      "steps": [
+        "Rinse the dal and pressure-cook with 3 parts water, a pinch of turmeric and salt - 3 whistles, then let it fall on its own.",
+        "Heat the ghee, crackle jeera, add onion and cook till translucent, then tomato till it collapses.",
+        "Pour the tadka into the dal, simmer five minutes so it stops tasting like two separate things.",
+        "Finish with coriander. Thin it to the consistency you actually eat - that is what the katori measure assumes."
+      ],
+      "notes": "The cheapest honest protein in the kitchen. Onion is optional this season given the price."
+    },
+    {
+      "id": "moong_dal_palak",
+      "name": "Moong dal with palak",
+      "veg": true,
+      "meals": ["lunch","dinner"],
+      "seasons": ["winter"],
+      "effort": "low",
+      "timeMin": 25,
+      "ing": [
+        { "food": "moong_dal", "g": 55 },
+        { "food": "spinach", "g": 100 },
+        { "food": "tomato", "g": 30 },
+        { "food": "mustard_oil", "g": 5 }
+      ],
+      "serveWith": ["roti_medium:2"],
+      "steps": [
+        "Cook the moong dal soft - it needs less time than toor, about 2 whistles.",
+        "Wilt chopped palak in the oil with garlic and green chilli; it loses most of its volume, which is why 100 g raw is one modest katori cooked.",
+        "Fold the palak through the dal, simmer briefly, salt at the end."
+      ],
+      "notes": "Best value protein-plus-iron plate of the Delhi winter."
+    },
+    {
+      "id": "rajma_masala",
+      "name": "Rajma masala",
+      "veg": true,
+      "meals": ["lunch","dinner"],
+      "seasons": ["all"],
+      "effort": "medium",
+      "timeMin": 50,
+      "ing": [
+        { "food": "rajma", "g": 60 },
+        { "food": "onion", "g": 50 },
+        { "food": "tomato", "g": 70 },
+        { "food": "mustard_oil", "g": 8 }
+      ],
+      "serveWith": ["katori_rice:1.5"],
+      "steps": [
+        "Soak the rajma overnight - non-negotiable, both for cooking time and for how it sits with you.",
+        "Pressure-cook 20-25 minutes until a bean crushes against the spoon with no resistance.",
+        "Brown the onion properly, add ginger-garlic, then tomato till the oil separates.",
+        "Add the beans with their cooking water, simmer 15 minutes, mash a few against the side to thicken."
+      ]
+    },
+    {
+      "id": "chole",
+      "name": "Chole",
+      "veg": true,
+      "meals": ["lunch","dinner"],
+      "seasons": ["all"],
+      "effort": "medium",
+      "timeMin": 45,
+      "ing": [
+        { "food": "kabuli_chana", "g": 60 },
+        { "food": "onion", "g": 45 },
+        { "food": "tomato", "g": 60 },
+        { "food": "mustard_oil", "g": 8 }
+      ],
+      "serveWith": ["roti_medium:2"],
+      "steps": [
+        "Soak overnight, cook with a tea bag or amla for colour if you like.",
+        "Onion-tomato masala with chana masala powder, anardana if you have it.",
+        "Simmer the chana in the masala 15 minutes so they take on colour and salt."
+      ]
+    },
+    {
+      "id": "kala_chana_sundal",
+      "name": "Kala chana sabzi",
+      "veg": true,
+      "meals": ["breakfast","lunch"],
+      "seasons": ["all"],
+      "effort": "low",
+      "timeMin": 35,
+      "ing": [
+        { "food": "kala_chana", "g": 55 },
+        { "food": "onion", "g": 20 },
+        { "food": "mustard_oil", "g": 5 }
+      ],
+      "steps": [
+        "Soak overnight, pressure-cook till tender but still holding shape.",
+        "Temper with mustard seeds, curry leaves and green chilli, toss the chana through dry.",
+        "Lemon at the end."
+      ],
+      "notes": "Cheapest protein per rupee in the whole dataset. Works as a breakfast that doesn't feel like diet food."
+    },
+    {
+      "id": "paneer_bhurji",
+      "name": "Paneer bhurji",
+      "veg": true,
+      "meals": ["breakfast","dinner"],
+      "seasons": ["all"],
+      "effort": "low",
+      "timeMin": 15,
+      "ing": [
+        { "food": "paneer", "g": 100 },
+        { "food": "tomato", "g": 50 },
+        { "food": "onion", "g": 30 },
+        { "food": "capsicum", "g": 30 },
+        { "food": "mustard_oil", "g": 6 }
+      ],
+      "serveWith": ["roti_medium:2"],
+      "steps": [
+        "Crumble the paneer by hand, not with a knife.",
+        "Cook onion, capsicum and tomato down, keep the heat high so nothing stews.",
+        "Fold in the paneer for 2 minutes only - longer and it turns rubbery and squeaks."
+      ],
+      "notes": "Highest-protein veg plate here, and the most expensive. The planner rations it against your budget rather than suggesting it daily."
+    },
+    {
+      "id": "palak_paneer",
+      "name": "Palak paneer",
+      "veg": true,
+      "meals": ["lunch","dinner"],
+      "seasons": ["winter"],
+      "effort": "medium",
+      "timeMin": 35,
+      "ing": [
+        { "food": "paneer", "g": 80 },
+        { "food": "spinach", "g": 200 },
+        { "food": "onion", "g": 30 },
+        { "food": "tomato", "g": 30 },
+        { "food": "mustard_oil", "g": 7 }
+      ],
+      "serveWith": ["roti_medium:2"],
+      "steps": [
+        "Blanch the palak 90 seconds, then straight into cold water - this is what keeps it green instead of khaki.",
+        "Blend coarse, not smooth.",
+        "Onion-tomato base, add the puree, cook only until it is hot through; long cooking kills both the colour and the folate.",
+        "Add paneer cubes at the end."
+      ]
+    },
+    {
+      "id": "soya_keema",
+      "name": "Soya keema",
+      "veg": true,
+      "meals": ["lunch","dinner"],
+      "seasons": ["all"],
+      "effort": "low",
+      "timeMin": 25,
+      "ing": [
+        { "food": "soya_chunks", "g": 40 },
+        { "food": "onion", "g": 40 },
+        { "food": "tomato", "g": 50 },
+        { "food": "peas", "g": 30 },
+        { "food": "mustard_oil", "g": 7 }
+      ],
+      "serveWith": ["roti_medium:2"],
+      "steps": [
+        "Soak the chunks in hot salted water 10 minutes, then squeeze dry hard and pulse coarse in a mixer.",
+        "Brown onion, ginger-garlic, tomato, then the soya with garam masala.",
+        "Add peas and a splash of water, cook covered 8 minutes."
+      ],
+      "notes": "40 g dry soya carries ~21 g protein for about eight rupees. The single best lever you have on a Rs 4,000 budget."
+    },
+    {
+      "id": "sarson_ka_saag",
+      "name": "Sarson ka saag",
+      "veg": true,
+      "meals": ["lunch","dinner"],
+      "seasons": ["winter"],
+      "effort": "high",
+      "timeMin": 75,
+      "ing": [
+        { "food": "sarson", "g": 200 },
+        { "food": "spinach", "g": 80 },
+        { "food": "radish", "g": 40 },
+        { "food": "ghee", "g": 8 },
+        { "food": "bajra", "g": 10 }
+      ],
+      "serveWith": ["roti_medium:2"],
+      "steps": [
+        "Pressure-cook the greens with green chilli, ginger and the radish till completely soft.",
+        "Mash with a wooden madhani rather than blending - texture is the whole point.",
+        "Thicken with a spoon of bajra or makki flour, cook it out for 10 minutes.",
+        "Finish with ghee and a little jaggery if you want it the Punjabi way."
+      ],
+      "notes": "Dec-Feb only, and worth building a weekend around. Pairs with makki roti."
+    },
+    {
+      "id": "aloo_gobhi",
+      "name": "Aloo gobhi",
+      "veg": true,
+      "meals": ["lunch","dinner"],
+      "seasons": ["winter"],
+      "effort": "low",
+      "timeMin": 30,
+      "ing": [
+        { "food": "cauliflower", "g": 150 },
+        { "food": "potato", "g": 80 },
+        { "food": "tomato", "g": 30 },
+        { "food": "mustard_oil", "g": 8 }
+      ],
+      "serveWith": ["roti_medium:2", "katori_dal:1"],
+      "steps": [
+        "Cut the gobhi into florets, keep them dry.",
+        "High heat, oil, ajwain and jeera, potatoes first for 5 minutes, then gobhi.",
+        "Cover and cook on low without water - the steam from the vegetables is enough.",
+        "Turmeric, coriander powder, amchur at the end."
+      ]
+    },
+    {
+      "id": "bhindi_masala",
+      "name": "Bhindi masala",
+      "veg": true,
+      "meals": ["lunch","dinner"],
+      "seasons": ["summer"],
+      "effort": "low",
+      "timeMin": 25,
+      "ing": [
+        { "food": "bhindi", "g": 180 },
+        { "food": "onion", "g": 30 },
+        { "food": "mustard_oil", "g": 8 }
+      ],
+      "serveWith": ["roti_medium:2", "katori_dal:1"],
+      "steps": [
+        "Wipe the bhindi dry and cut it dry; any water is what makes it slimy.",
+        "Fry in a wide pan, single layer, undisturbed for the first few minutes.",
+        "Add onion and dry masala once the slime has cooked off."
+      ]
+    },
+    {
+      "id": "lauki_chana_dal",
+      "name": "Lauki chana dal",
+      "veg": true,
+      "meals": ["lunch","dinner"],
+      "seasons": ["summer"],
+      "effort": "low",
+      "timeMin": 30,
+      "ing": [
+        { "food": "chana_dal", "g": 45 },
+        { "food": "lauki", "g": 200 },
+        { "food": "tomato", "g": 30 },
+        { "food": "mustard_oil", "g": 6 }
+      ],
+      "serveWith": ["roti_medium:2"],
+      "steps": [
+        "Soak chana dal 30 minutes.",
+        "Pressure-cook dal and cubed lauki together, 3 whistles.",
+        "Tadka of jeera, hing, tomato; fold through and simmer."
+      ],
+      "notes": "Very high volume for very few calories - useful on days you want to eat a lot and stay in deficit."
+    },
+    {
+      "id": "baingan_bharta",
+      "name": "Baingan bharta",
+      "veg": true,
+      "meals": ["lunch","dinner"],
+      "seasons": ["all"],
+      "effort": "medium",
+      "timeMin": 40,
+      "ing": [
+        { "food": "baingan", "g": 250 },
+        { "food": "onion", "g": 40 },
+        { "food": "tomato", "g": 60 },
+        { "food": "mustard_oil", "g": 8 }
+      ],
+      "serveWith": ["roti_medium:2"],
+      "steps": [
+        "Char the baingan directly on the flame until the skin blisters and it collapses - the smoke is the dish.",
+        "Peel under running water, mash rough.",
+        "Onion-tomato masala, then the pulp, cook till the water goes."
+      ]
+    },
+    {
+      "id": "poha",
+      "name": "Poha",
+      "veg": true,
+      "meals": ["breakfast"],
+      "seasons": ["all"],
+      "effort": "low",
+      "timeMin": 15,
+      "ing": [
+        { "food": "poha", "g": 60 },
+        { "food": "potato", "g": 50 },
+        { "food": "onion", "g": 25 },
+        { "food": "peanuts", "g": 12 },
+        { "food": "mustard_oil", "g": 6 }
+      ],
+      "steps": [
+        "Rinse the poha in a colander and leave it to drain - do not soak it.",
+        "Fry peanuts, remove, then mustard seeds, curry leaves, onion, potato.",
+        "Fold the poha through with turmeric and salt, cover 3 minutes, lemon and peanuts on top."
+      ],
+      "notes": "Add a katori of curd to make the protein respectable."
+    },
+    {
+      "id": "besan_chilla",
+      "name": "Besan chilla",
+      "veg": true,
+      "meals": ["breakfast","dinner"],
+      "seasons": ["all"],
+      "effort": "low",
+      "timeMin": 20,
+      "ing": [
+        { "food": "besan", "g": 60 },
+        { "food": "onion", "g": 25 },
+        { "food": "tomato", "g": 25 },
+        { "food": "spinach", "g": 30 },
+        { "food": "mustard_oil", "g": 6 }
+      ],
+      "steps": [
+        "Whisk besan with water to a pourable batter, rest 10 minutes.",
+        "Stir in the chopped vegetables, ajwain, salt.",
+        "Spread thin on a hot tawa, a few drops of oil around the edge, flip once."
+      ],
+      "notes": "13 g protein for under twenty rupees. The best cheap breakfast in this file."
+    },
+    {
+      "id": "veg_upma",
+      "name": "Vegetable upma",
+      "veg": true,
+      "meals": ["breakfast"],
+      "seasons": ["all"],
+      "effort": "low",
+      "timeMin": 20,
+      "ing": [
+        { "food": "suji", "g": 55 },
+        { "food": "carrot", "g": 40 },
+        { "food": "peas", "g": 30 },
+        { "food": "peanuts", "g": 10 },
+        { "food": "mustard_oil", "g": 6 }
+      ],
+      "steps": [
+        "Dry-roast the suji till it smells nutty and stops looking raw. This is the step people skip and then wonder why it is pasty.",
+        "Tadka, vegetables, then 2.5 parts hot water to 1 part suji.",
+        "Rain the suji in while stirring, cover, rest off the heat."
+      ]
+    },
+    {
+      "id": "oats_veg_porridge",
+      "name": "Savoury oats",
+      "veg": true,
+      "meals": ["breakfast"],
+      "seasons": ["all"],
+      "effort": "low",
+      "timeMin": 12,
+      "ing": [
+        { "food": "oats", "g": 50 },
+        { "food": "carrot", "g": 30 },
+        { "food": "peas", "g": 25 },
+        { "food": "milk_toned", "g": 100 },
+        { "food": "mustard_oil", "g": 4 }
+      ],
+      "steps": [
+        "Tadka of jeera and curry leaves, add the diced vegetables.",
+        "Add oats, water and milk, cook 5 minutes stirring.",
+        "Black pepper, lemon."
+      ],
+      "notes": "Oats are the priciest grain here at Rs 180/kg. Good food, but on a tight budget poha or suji does similar work for a third of the cost."
+    },
+    {
+      "id": "curd_rice",
+      "name": "Curd rice",
+      "veg": true,
+      "meals": ["lunch"],
+      "seasons": ["summer"],
+      "effort": "low",
+      "timeMin": 15,
+      "ing": [
+        { "food": "rice", "g": 50 },
+        { "food": "curd", "g": 200 },
+        { "food": "cucumber", "g": 50 },
+        { "food": "mustard_oil", "g": 4 }
+      ],
+      "steps": [
+        "Cook the rice soft, cool it to room temperature - hot rice splits the curd.",
+        "Mash lightly, fold in curd and grated cucumber, salt.",
+        "Tadka of mustard seeds, curry leaves, hing, green chilli."
+      ]
+    },
+    {
+      "id": "khichdi",
+      "name": "Moong dal khichdi",
+      "veg": true,
+      "meals": ["lunch","dinner"],
+      "seasons": ["all"],
+      "effort": "low",
+      "timeMin": 25,
+      "ing": [
+        { "food": "rice", "g": 40 },
+        { "food": "moong_dal", "g": 40 },
+        { "food": "carrot", "g": 40 },
+        { "food": "peas", "g": 30 },
+        { "food": "ghee", "g": 7 }
+      ],
+      "serveWith": ["katori_curd:1"],
+      "steps": [
+        "Rinse rice and dal together, pressure-cook with vegetables, turmeric and salt in 4 parts water.",
+        "3 whistles, then mash slightly for the right consistency.",
+        "Ghee on top at the table, not in the pot."
+      ],
+      "notes": "One-pot, cheap, complete protein from the rice-dal pairing. The default plan filler."
+    },
+    {
+      "id": "rajma_salad",
+      "name": "Rajma chaat salad",
+      "veg": true,
+      "meals": ["snack","lunch"],
+      "seasons": ["all"],
+      "effort": "low",
+      "timeMin": 15,
+      "ing": [
+        { "food": "rajma", "g": 40 },
+        { "food": "cucumber", "g": 60 },
+        { "food": "tomato", "g": 40 },
+        { "food": "onion", "g": 20 }
+      ],
+      "steps": [
+        "Use rajma cooked in a previous batch - this is a leftovers recipe by design.",
+        "Toss with chopped vegetables, chaat masala, lemon, coriander.",
+        "No oil needed."
+      ],
+      "notes": "Zero-cook, high-protein, high-volume snack. Good answer to 4 pm hunger."
+    },
+
+    {
+      "id": "sprout_chaat",
+      "name": "Moong sprout chaat",
+      "veg": true,
+      "meals": ["snack","breakfast"],
+      "seasons": ["all"],
+      "effort": "low",
+      "timeMin": 10,
+      "ing": [
+        { "food": "moong_whole", "g": 45 },
+        { "food": "cucumber", "g": 50 },
+        { "food": "tomato", "g": 40 },
+        { "food": "onion", "g": 15 }
+      ],
+      "steps": [
+        "Soak the moong 8 hours, drain, tie in a damp cloth overnight - by morning it has tails.",
+        "Steam 3 minutes if you prefer them soft; raw is fine too.",
+        "Toss with chopped vegetables, chaat masala, lemon, coriander."
+      ],
+      "notes": "Eleven grams of protein for about seven rupees, no cooking. The best thing on this list per rupee."
+    },
+    {
+      "id": "roasted_chana",
+      "name": "Roasted chana",
+      "veg": true,
+      "meals": ["snack"],
+      "seasons": ["all"],
+      "effort": "low",
+      "timeMin": 5,
+      "ing": [
+        { "food": "kala_chana", "g": 40 }
+      ],
+      "steps": [
+        "Buy it roasted, or dry-roast soaked-and-dried chana in a kadhai till it rattles.",
+        "Salt and red chilli. Keep a jar at your desk."
+      ],
+      "notes": "The answer to 4 pm biscuits. Shelf-stable, so it survives contact with a bad day."
+    },
+    {
+      "id": "curd_fruit_bowl",
+      "name": "Curd and fruit bowl",
+      "veg": true,
+      "meals": ["snack","breakfast"],
+      "seasons": ["all"],
+      "effort": "low",
+      "timeMin": 5,
+      "ing": [
+        { "food": "curd", "g": 150 },
+        { "food": "banana", "g": 100 },
+        { "food": "papaya", "g": 100 },
+        { "food": "peanuts", "g": 10 }
+      ],
+      "steps": [
+        "Whisk the curd smooth, fold in the cut fruit.",
+        "Crushed peanuts on top. A pinch of salt, not sugar - it makes the fruit taste sweeter."
+      ]
+    },
+    {
+      "id": "peanut_chaat",
+      "name": "Peanut chaat",
+      "veg": true,
+      "meals": ["snack"],
+      "seasons": ["all"],
+      "effort": "low",
+      "timeMin": 8,
+      "ing": [
+        { "food": "peanuts", "g": 35 },
+        { "food": "onion", "g": 20 },
+        { "food": "tomato", "g": 30 },
+        { "food": "cucumber", "g": 40 }
+      ],
+      "steps": [
+        "Boil the peanuts 15 minutes, or use roasted if you want crunch.",
+        "Toss with chopped vegetables, green chilli, lemon, chaat masala."
+      ],
+      "notes": "Calorie-dense for a snack - the planner uses it on heavy training days rather than every afternoon."
+    },
+    {
+      "id": "masala_mushroom",
+      "name": "Masala mushroom",
+      "veg": true,
+      "meals": ["lunch","dinner"],
+      "seasons": ["all"],
+      "effort": "low",
+      "timeMin": 25,
+      "ing": [
+        { "food": "mushroom", "g": 200 },
+        { "food": "onion", "g": 40 },
+        { "food": "tomato", "g": 50 },
+        { "food": "capsicum", "g": 30 },
+        { "food": "ginger", "g": 5 },
+        { "food": "garlic", "g": 5 },
+        { "food": "mustard_oil", "g": 8 }
+      ],
+      "serveWith": ["roti_medium:2"],
+      "steps": [
+        "Wipe the mushrooms with a damp cloth rather than washing them - they drink water and then refuse to brown.",
+        "Quarter them. High heat, oil, and leave them alone until the undersides colour; crowding the pan steams them instead.",
+        "Take them out, then brown onion, ginger-garlic, tomato and capsicum down into a masala.",
+        "Return the mushrooms, add turmeric, coriander powder, garam masala, and cook two minutes more.",
+        "Salt only at the end - salt early pulls the water straight out."
+      ],
+      "notes": "Mushrooms are mostly water, so 200 g raw cooks down to about one modest katori. Cheap, filling, and barely 50 kcal before the oil goes in."
+    },
+    {
+      "id": "mushroom_matar",
+      "name": "Mushroom matar",
+      "veg": true,
+      "meals": ["lunch","dinner"],
+      "seasons": ["winter"],
+      "effort": "low",
+      "timeMin": 30,
+      "ing": [
+        { "food": "mushroom", "g": 150 },
+        { "food": "peas", "g": 80 },
+        { "food": "onion", "g": 40 },
+        { "food": "tomato", "g": 60 },
+        { "food": "mustard_oil", "g": 8 }
+      ],
+      "serveWith": ["roti_medium:2"],
+      "steps": [
+        "Brown the mushrooms separately first, as always.",
+        "Onion-tomato masala, then peas with a splash of water, covered, until tender.",
+        "Fold the mushrooms back in at the end so they keep their texture."
+      ]
+    },
+    {
+      "id": "matar_paneer",
+      "name": "Matar paneer",
+      "veg": true,
+      "meals": ["lunch","dinner"],
+      "seasons": ["winter"],
+      "effort": "medium",
+      "timeMin": 35,
+      "ing": [
+        { "food": "paneer", "g": 80 },
+        { "food": "peas", "g": 70 },
+        { "food": "onion", "g": 45 },
+        { "food": "tomato", "g": 70 },
+        { "food": "mustard_oil", "g": 8 }
+      ],
+      "serveWith": ["roti_medium:2"],
+      "steps": [
+        "Fry the paneer lightly only if you like it firm, then soak the cubes in warm salted water so they stay soft.",
+        "Onion-tomato masala cooked until the oil separates.",
+        "Peas and water, simmer ten minutes, paneer in for the last two."
+      ]
+    },
+    {
+      "id": "aloo_matar",
+      "name": "Aloo matar",
+      "veg": true,
+      "meals": ["lunch","dinner"],
+      "seasons": ["winter"],
+      "effort": "low",
+      "timeMin": 30,
+      "ing": [
+        { "food": "potato", "g": 150 },
+        { "food": "peas", "g": 80 },
+        { "food": "tomato", "g": 50 },
+        { "food": "onion", "g": 30 },
+        { "food": "mustard_oil", "g": 7 }
+      ],
+      "serveWith": ["roti_medium:2", "katori_dal:1"],
+      "steps": [
+        "Cube the potatoes small so they cook in the same time as the peas.",
+        "Jeera and hing in hot oil, onion, then tomato until soft.",
+        "Potatoes and peas with a little water, covered, until a knife goes through cleanly."
+      ]
+    },
+    {
+      "id": "jeera_aloo",
+      "name": "Jeera aloo",
+      "veg": true,
+      "meals": ["lunch","dinner","breakfast"],
+      "seasons": ["all"],
+      "effort": "low",
+      "timeMin": 20,
+      "ing": [
+        { "food": "potato", "g": 200 },
+        { "food": "green_chilli", "g": 5 },
+        { "food": "coriander", "g": 10 },
+        { "food": "mustard_oil", "g": 8 }
+      ],
+      "serveWith": ["roti_medium:2", "katori_curd:1"],
+      "steps": [
+        "Boil the potatoes the day before if you can - cold boiled potatoes hold their shape and crisp better.",
+        "Plenty of jeera in hot oil until it darkens, green chilli, then the cubed potatoes.",
+        "Leave them undisturbed to catch colour on one side. Amchur and coriander at the end."
+      ]
+    },
+    {
+      "id": "mixed_veg",
+      "name": "Mixed vegetable sabzi",
+      "veg": true,
+      "meals": ["lunch","dinner"],
+      "seasons": ["all"],
+      "effort": "low",
+      "timeMin": 30,
+      "ing": [
+        { "food": "cauliflower", "g": 80 },
+        { "food": "carrot", "g": 60 },
+        { "food": "beans", "g": 50 },
+        { "food": "peas", "g": 40 },
+        { "food": "potato", "g": 60 },
+        { "food": "mustard_oil", "g": 8 }
+      ],
+      "serveWith": ["roti_medium:2", "katori_dal:1"],
+      "steps": [
+        "Cut everything to roughly the same size, hardest vegetables in first.",
+        "Cook covered on low with no added water beyond what clings from washing.",
+        "Dry masala at the end so it toasts rather than steams."
+      ],
+      "notes": "The catch-all for whatever the fridge is holding. The fridge matcher leans on this one."
+    },
+    {
+      "id": "veg_pulao",
+      "name": "Vegetable pulao",
+      "veg": true,
+      "meals": ["lunch","dinner"],
+      "seasons": ["all"],
+      "effort": "low",
+      "timeMin": 30,
+      "ing": [
+        { "food": "rice", "g": 70 },
+        { "food": "carrot", "g": 40 },
+        { "food": "peas", "g": 40 },
+        { "food": "beans", "g": 30 },
+        { "food": "ghee", "g": 7 }
+      ],
+      "serveWith": ["katori_curd:1"],
+      "steps": [
+        "Soak the rice 20 minutes and drain - this is the difference between pulao and khichdi.",
+        "Whole spices in ghee, then vegetables, then rice, tossed gently for two minutes.",
+        "Exactly 1.5 parts water to rice, cover, lowest flame, and do not lift the lid for 12 minutes."
+      ]
+    },
+    {
+      "id": "tofu_bhurji",
+      "name": "Tofu bhurji",
+      "veg": true,
+      "meals": ["breakfast","dinner"],
+      "seasons": ["all"],
+      "effort": "low",
+      "timeMin": 15,
+      "ing": [
+        { "food": "tofu", "g": 120 },
+        { "food": "onion", "g": 30 },
+        { "food": "tomato", "g": 40 },
+        { "food": "capsicum", "g": 30 },
+        { "food": "mustard_oil", "g": 6 }
+      ],
+      "serveWith": ["roti_medium:2"],
+      "steps": [
+        "Press the tofu between two plates for ten minutes to drive the water out, then crumble.",
+        "Cook the vegetables down hard first.",
+        "Tofu in last with turmeric and a pinch of kala namak, which does the egg-like work."
+      ],
+      "notes": "Same idea as paneer bhurji at a fifth less cost per gram of protein, with none of the saturated fat."
+    },
+    {
+      "id": "kadhi",
+      "name": "Kadhi",
+      "veg": true,
+      "meals": ["lunch"],
+      "seasons": ["all"],
+      "effort": "medium",
+      "timeMin": 40,
+      "ing": [
+        { "food": "curd", "g": 150 },
+        { "food": "besan", "g": 30 },
+        { "food": "onion", "g": 20 },
+        { "food": "mustard_oil", "g": 7 }
+      ],
+      "serveWith": ["katori_rice:1.5"],
+      "steps": [
+        "Whisk sour curd and besan with water until there is not a single lump, then pass it through a sieve anyway.",
+        "Bring to a boil stirring constantly, or it splits. Once it boils it is stable.",
+        "Simmer 25 minutes at least - undercooked kadhi tastes of raw besan.",
+        "Tadka of red chilli, methi seeds and hing poured over at the end."
+      ]
+    },
+    {
+      "id": "sambar",
+      "name": "Sambar",
+      "veg": true,
+      "meals": ["lunch","dinner","breakfast"],
+      "seasons": ["all"],
+      "effort": "medium",
+      "timeMin": 40,
+      "ing": [
+        { "food": "toor_dal", "g": 50 },
+        { "food": "lauki", "g": 80 },
+        { "food": "carrot", "g": 40 },
+        { "food": "tomato", "g": 40 },
+        { "food": "mustard_oil", "g": 6 }
+      ],
+      "serveWith": ["katori_rice:1"],
+      "steps": [
+        "Cook the toor dal very soft and whisk it smooth.",
+        "Boil the vegetables separately with tamarind and sambar powder so they keep their shape.",
+        "Combine, simmer, then tadka of mustard seeds, curry leaves and hing."
+      ]
+    },
+    {
+      "id": "idli_sambar",
+      "name": "Idli",
+      "veg": true,
+      "meals": ["breakfast"],
+      "seasons": ["all"],
+      "effort": "high",
+      "timeMin": 40,
+      "ing": [
+        { "food": "rice", "g": 50 },
+        { "food": "urad_dal", "g": 18 }
+      ],
+      "serveWith": ["katori_dal:0.5"],
+      "steps": [
+        "Soak rice and urad dal separately for 5 hours, grind urad first until genuinely fluffy.",
+        "Combine, salt, and ferment overnight somewhere warm - in a Delhi winter, inside the oven with the light on.",
+        "Steam 10 minutes. A toothpick should come out clean."
+      ],
+      "notes": "Two days of planning for ten minutes of cooking. Make a big batch of batter; it keeps a week."
+    },
+    {
+      "id": "dosa_plain",
+      "name": "Dosa",
+      "veg": true,
+      "meals": ["breakfast","dinner"],
+      "seasons": ["all"],
+      "effort": "high",
+      "timeMin": 30,
+      "ing": [
+        { "food": "rice", "g": 55 },
+        { "food": "urad_dal", "g": 18 },
+        { "food": "mustard_oil", "g": 5 }
+      ],
+      "steps": [
+        "Same batter as idli, ground thinner and fermented the same way.",
+        "The tawa has to be properly hot, then wiped with a halved onion dipped in oil.",
+        "Pour from the centre and spiral outward in one motion. The first one is always a sacrifice."
+      ]
+    },
+    {
+      "id": "aloo_paratha",
+      "name": "Aloo paratha",
+      "veg": true,
+      "meals": ["breakfast"],
+      "seasons": ["all"],
+      "effort": "medium",
+      "timeMin": 35,
+      "ing": [
+        { "food": "atta", "g": 60 },
+        { "food": "potato", "g": 120 },
+        { "food": "green_chilli", "g": 4 },
+        { "food": "coriander", "g": 8 },
+        { "food": "ghee", "g": 8 }
+      ],
+      "serveWith": ["katori_curd:1"],
+      "steps": [
+        "Boil and mash the potatoes completely dry - wet filling tears the paratha every time.",
+        "Season the filling harder than feels right; the dough mutes it.",
+        "Roll gently from the centre, turning as you go, so the filling stays put."
+      ],
+      "notes": "Two parathas with ghee and curd is comfortably 600 kcal. Worth logging honestly."
+    },
+    {
+      "id": "methi_thepla",
+      "name": "Methi thepla",
+      "veg": true,
+      "meals": ["breakfast","snack"],
+      "seasons": ["winter"],
+      "effort": "medium",
+      "timeMin": 30,
+      "ing": [
+        { "food": "atta", "g": 55 },
+        { "food": "methi", "g": 50 },
+        { "food": "besan", "g": 15 },
+        { "food": "curd", "g": 25 },
+        { "food": "mustard_oil", "g": 7 }
+      ],
+      "steps": [
+        "Chop the methi fine and mix it into the dry flours with turmeric, chilli and ajwain.",
+        "Bind with curd and only as much water as it needs - methi releases plenty.",
+        "Roll thin, cook on both sides with a little oil."
+      ],
+      "notes": "Keeps two days without refrigeration, which makes it the best thing to carry."
+    },
+    {
+      "id": "veg_sandwich",
+      "name": "Grilled veg sandwich",
+      "veg": true,
+      "meals": ["breakfast","snack"],
+      "seasons": ["all"],
+      "effort": "low",
+      "timeMin": 12,
+      "ing": [
+        { "food": "potato", "g": 60 },
+        { "food": "cucumber", "g": 40 },
+        { "food": "tomato", "g": 40 },
+        { "food": "paneer", "g": 30 },
+        { "food": "mustard_oil", "g": 4 }
+      ],
+      "steps": [
+        "Boiled potato sliced thin, cucumber and tomato, a layer of crumbled paneer.",
+        "Chaat masala between the layers, not on top.",
+        "Grill or toast until the outside is properly crisp."
+      ],
+      "notes": "Bread is in the packaged list - log two slices alongside this."
+    },
+    {
+      "id": "corn_chaat",
+      "name": "Corn chaat",
+      "veg": true,
+      "meals": ["snack"],
+      "seasons": ["all"],
+      "effort": "low",
+      "timeMin": 10,
+      "ing": [
+        { "food": "sweet_corn", "g": 120 },
+        { "food": "onion", "g": 20 },
+        { "food": "tomato", "g": 30 },
+        { "food": "coriander", "g": 8 }
+      ],
+      "steps": [
+        "Boil or steam the corn until the kernels pop between your teeth.",
+        "Toss hot with butter or a little oil, chaat masala, lemon and the chopped vegetables."
+      ]
+    },
+    {
+      "id": "tomato_soup",
+      "name": "Tomato soup",
+      "veg": true,
+      "meals": ["snack","dinner"],
+      "seasons": ["winter"],
+      "effort": "low",
+      "timeMin": 25,
+      "ing": [
+        { "food": "tomato", "g": 250 },
+        { "food": "onion", "g": 30 },
+        { "food": "garlic", "g": 5 },
+        { "food": "ghee", "g": 5 }
+      ],
+      "steps": [
+        "Cook tomatoes, onion and garlic with a little water until collapsing.",
+        "Blend, then pass through a sieve if you want it smooth.",
+        "Back on the heat with salt, pepper and a pinch of sugar to correct the acidity."
+      ],
+      "notes": "Very low calorie for the volume - useful on a day that has already gone badly."
+    },
+    {
+      "id": "paneer_tikka_home",
+      "name": "Paneer tikka (home)",
+      "veg": true,
+      "meals": ["dinner","snack"],
+      "seasons": ["all"],
+      "effort": "medium",
+      "timeMin": 40,
+      "ing": [
+        { "food": "paneer", "g": 100 },
+        { "food": "curd", "g": 50 },
+        { "food": "capsicum", "g": 40 },
+        { "food": "onion", "g": 30 },
+        { "food": "mustard_oil", "g": 6 }
+      ],
+      "steps": [
+        "Hang the curd for 20 minutes so the marinade clings instead of sliding off.",
+        "Marinate paneer and vegetables with besan, ajwain, chilli and garam masala for 30 minutes.",
+        "Cook on a very hot tawa or under a grill until the edges blacken in places."
+      ],
+      "notes": "Home version with a fraction of the oil of the restaurant one, and roughly the same protein."
+    },
+    {
+      "id": "sprouts_poha",
+      "name": "Sprouts poha",
+      "veg": true,
+      "meals": ["breakfast"],
+      "seasons": ["all"],
+      "effort": "low",
+      "timeMin": 18,
+      "ing": [
+        { "food": "poha", "g": 50 },
+        { "food": "moong_whole", "g": 35 },
+        { "food": "onion", "g": 25 },
+        { "food": "peanuts", "g": 10 },
+        { "food": "mustard_oil", "g": 6 }
+      ],
+      "steps": [
+        "Steam the sprouts three minutes while the poha drains.",
+        "Usual poha tadka, fold both through together.",
+        "Lemon generously at the end."
+      ],
+      "notes": "Ordinary poha with the protein roughly doubled for about four rupees more."
+    },
+    {
+      "id": "egg_bhurji",
+      "name": "Egg bhurji",
+      "veg": false,
+      "meals": ["breakfast","dinner"],
+      "seasons": ["all"],
+      "effort": "low",
+      "timeMin": 12,
+      "ing": [
+        { "food": "egg", "g": 100 },
+        { "food": "onion", "g": 30 },
+        { "food": "tomato", "g": 40 },
+        { "food": "mustard_oil", "g": 5 }
+      ],
+      "serveWith": ["roti_medium:2"],
+      "steps": [
+        "Cook onion and tomato down first, fully.",
+        "Beaten eggs in on low heat, stir constantly, pull off while still slightly wet."
+      ]
+    },
+    {
+      "id": "chicken_curry",
+      "name": "Home-style chicken curry",
+      "veg": false,
+      "meals": ["lunch","dinner"],
+      "seasons": ["all"],
+      "effort": "medium",
+      "timeMin": 45,
+      "ing": [
+        { "food": "chicken", "g": 150 },
+        { "food": "onion", "g": 60 },
+        { "food": "tomato", "g": 60 },
+        { "food": "curd", "g": 40 },
+        { "food": "mustard_oil", "g": 10 }
+      ],
+      "serveWith": ["roti_medium:2", "katori_rice:1"],
+      "steps": [
+        "Marinate the chicken in curd, turmeric, ginger-garlic for 30 minutes.",
+        "Brown onions deeply - this is the body of the curry and it cannot be rushed.",
+        "Tomato till the oil separates, then the chicken, sear, then water and simmer 20 minutes."
+      ]
+    },
+    {
+      "id": "egg_curry",
+      "name": "Egg curry",
+      "veg": false,
+      "meals": ["lunch","dinner"],
+      "seasons": ["all"],
+      "effort": "medium",
+      "timeMin": 35,
+      "ing": [
+        { "food": "egg", "g": 150 },
+        { "food": "onion", "g": 50 },
+        { "food": "tomato", "g": 60 },
+        { "food": "mustard_oil", "g": 8 }
+      ],
+      "serveWith": ["roti_medium:2", "katori_rice:1"],
+      "steps": [
+        "Hard-boil the eggs, peel, and prick them a few times so the masala gets in.",
+        "Shallow-fry them with a little turmeric until the skins blister.",
+        "Standard onion-tomato gravy, eggs in for the last five minutes only."
+      ]
+    },
+    {
+      "id": "chicken_tikka_home",
+      "name": "Chicken tikka (home)",
+      "veg": false,
+      "meals": ["dinner","snack"],
+      "seasons": ["all"],
+      "effort": "medium",
+      "timeMin": 50,
+      "ing": [
+        { "food": "chicken", "g": 180 },
+        { "food": "curd", "g": 60 },
+        { "food": "ginger", "g": 6 },
+        { "food": "garlic", "g": 6 },
+        { "food": "mustard_oil", "g": 8 }
+      ],
+      "serveWith": ["roti_medium:2"],
+      "steps": [
+        "Two marinades: first salt, lemon and ginger-garlic for 20 minutes, then hung curd with the spices for an hour.",
+        "Cook hot and fast - a grill, or a tawa with the chicken pressed down.",
+        "Rest five minutes before cutting, or the juices run out onto the board."
+      ],
+      "notes": "About 56 g of protein per serving. Nothing vegetarian in this file comes close."
+    },
+    {
+      "id": "fish_curry",
+      "name": "Light fish curry",
+      "veg": false,
+      "meals": ["lunch","dinner"],
+      "seasons": ["all"],
+      "effort": "medium",
+      "timeMin": 30,
+      "ing": [
+        { "food": "fish_rohu", "g": 180 },
+        { "food": "tomato", "g": 70 },
+        { "food": "onion", "g": 40 },
+        { "food": "mustard_oil", "g": 10 }
+      ],
+      "serveWith": ["katori_rice:1.5"],
+      "steps": [
+        "Salt and turmeric the fish, rest 10 minutes, shallow-fry briefly and set aside.",
+        "Mustard oil must smoke before anything goes in.",
+        "Onion-tomato base thin with water, slide the fish back in for the last 6 minutes only."
+      ]
+    }
+  ]
+}

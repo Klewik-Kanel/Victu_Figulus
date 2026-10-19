@@ -1,0 +1,1453 @@
+/**
+ * app.js - screens and interaction. All arithmetic lives in core.js.
+ */
+
+import {
+  buildDb, ACTIVITY, dailyTarget, bmi,
+  portionToStoredGrams, nutritionFor, addNutrition, roundNutrition,
+  pricePerKg, costOfStoredGrams, monthKey, availability,
+  recipeNutrition, recipeCost, proteinValue, serveWithNutrition,
+  generateWeekPlan, shoppingList, measuresFor,
+  weightTrend, suggestAdjustment, formatQty,
+  repairDay, spreadSurplus, pantryMatch, shoppingListMinusPantry, ASSUMED_STAPLES,
+} from './core.js';
+import { store, today, shiftDate } from './store.js';
+import { lookupBarcode, canScan, scanFromCamera } from './lookup.js';
+
+const $ = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
+
+let db;
+let viewDate = today();
+let planTabDay = 0;
+
+const MEAL_LABEL = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack' };
+const MEAL_COLOUR = {
+  breakfast: 'var(--indigo)',
+  lunch: 'var(--moss)',
+  dinner: 'var(--amber)',
+  snack: 'var(--steel-30)',
+};
+
+// ---------------------------------------------------------------------------
+// Boot
+// ---------------------------------------------------------------------------
+
+async function boot() {
+  try {
+    const [foods, portions, seasonality, recipes, packaged] = await Promise.all(
+      ['foods', 'portions', 'seasonality', 'recipes', 'packaged'].map((n) =>
+        fetch(`data/${n}.json`).then((r) => {
+          if (!r.ok) throw new Error(`data/${n}.json returned ${r.status}`);
+          return r.json();
+        })
+      )
+    );
+    db = buildDb({ foods, portions, seasonality, recipes, packaged, scanned: store.state.scanned });
+  } catch (err) {
+    document.body.innerHTML =
+      `<div class="screen"><h2 class="bar-title" style="padding-top:40px">Can't load the food data</h2>` +
+      `<p class="note">${err.message}. Victu reads its data over HTTP, so it needs to be served rather than opened as a file. ` +
+      `Run <code>npx serve</code> or <code>python3 -m http.server</code> in this folder and open the address it prints.</p></div>`;
+    return;
+  }
+
+  fillActivitySelect();
+  wireEvents();
+
+  if (!store.state.profile) {
+    show('setup');
+    updateSetupPreview();
+  } else {
+    $('#nav').hidden = false;
+    show('today');
+  }
+
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    navigator.serviceWorker.register('sw.js').catch(() => {
+      /* Offline support is a bonus, not a requirement. */
+    });
+  }
+
+  if (!store.isPersistent) {
+    toast("This browser isn't saving data - private window?");
+  }
+}
+
+function fillActivitySelect() {
+  $('#activity-select').innerHTML = Object.entries(ACTIVITY)
+    .map(([k, v]) => `<option value="${k}">${v.label}</option>`)
+    .join('');
+  $('#activity-select').value = 'light';
+}
+
+function show(id) {
+  $$('.screen').forEach((s) => (s.hidden = s.id !== id));
+  $$('.nav-btn').forEach((b) => b.classList.toggle('is-on', b.dataset.screen === id));
+  window.scrollTo({ top: 0 });
+  if (id === 'today') renderToday();
+  if (id === 'plan') renderPlan();
+  if (id === 'cook') renderCook();
+  if (id === 'kitchen') renderKitchen();
+  if (id === 'you') renderYou();
+}
+
+function toast(msg) {
+  const el = $('#toast');
+  el.textContent = msg;
+  el.hidden = false;
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => (el.hidden = true), 2600);
+}
+
+// ---------------------------------------------------------------------------
+// Targets
+// ---------------------------------------------------------------------------
+
+/** A newly scanned product has to join the food list before it can be logged. */
+function rebuildDb() {
+  db = buildDb({
+    foods: { foods: db.foods.filter((f) => !f.isPackaged) },
+    portions: { measures: db.measures, plateHeuristics: db.plateHeuristics, defaultMeasureByCategory: db.defaultMeasureByCategory },
+    seasonality: db.seasonality,
+    recipes: { recipes: db.recipes },
+    packaged: { items: db.foods.filter((f) => f.isPackaged && !f.isScanned) },
+    scanned: store.state.scanned,
+  });
+}
+
+function currentTarget() {
+  const p = store.state.profile;
+  const t = dailyTarget(p);
+  const nudge = store.state.targetNudge ?? 0;
+  if (nudge) {
+    t.kcal = Math.max(p.sex === 'male' ? 1500 : 1200, t.kcal + nudge);
+    t.nudged = nudge;
+  }
+  return t;
+}
+
+function weeklyBudget() {
+  return ((store.state.profile.monthlyBudget ?? 4000) * 7) / 30.44;
+}
+
+// ---------------------------------------------------------------------------
+// Setup
+// ---------------------------------------------------------------------------
+
+function readSetupForm() {
+  const f = $('#setup-form');
+  const d = Object.fromEntries(new FormData(f));
+  return {
+    name: (d.name || '').trim(),
+    sex: d.sex,
+    ageYears: +d.ageYears,
+    heightCm: +d.heightCm,
+    weightKg: +d.weightKg,
+    activity: d.activity,
+    diet: d.diet,
+    goalKgPerWeek: +d.goalKgPerWeek,
+    monthlyBudget: +d.monthlyBudget,
+    household: Math.max(1, Math.min(6, +d.household || 1)),
+    region: 'north_india_plains',
+  };
+}
+
+function updateSetupPreview() {
+  const p = readSetupForm();
+  if (!p.weightKg || !p.heightCm || !p.ageYears) return;
+  const t = dailyTarget(p);
+  const weekly = Math.round((p.monthlyBudget * 7) / 30.44);
+
+  $('#setup-preview').innerHTML = `
+    You burn about <b>${t.maintenanceKcal}</b> kcal a day, so the plan targets
+    <b>${t.kcal}</b> kcal with <b>${t.proteinG} g</b> protein — about
+    <b>${t.projectedKgPerWeek} kg</b> a week. BMI <b>${bmi(p)}</b>.
+    Budget works out to <b>₹${weekly}</b> a week for ${p.household === 1 ? 'one' : p.household} ${p.household === 1 ? 'person' : 'people'}.
+    ${t.notes.length ? `<ul>${t.notes.map((n) => `<li>${n}</li>`).join('')}</ul>` : ''}
+  `;
+}
+
+// ---------------------------------------------------------------------------
+// Today
+// ---------------------------------------------------------------------------
+
+function entryNutrition(entry) {
+  if (entry.kind === 'food') {
+    const food = db.foodsById[entry.foodId];
+    return nutritionFor(food, entry.storedG);
+  }
+  const r = db.recipesById[entry.recipeId];
+  if (!r) return { kcal: 0, p: 0, c: 0, f: 0, fiber: 0 };
+  const base = recipeNutrition(db, r, entry.servings);
+  const extras = serveWithNutrition(db, r, entry.servings, store.state.katoriMl / 150);
+  return addNutrition(base, extras.nutrition);
+}
+
+function entryCost(entry) {
+  const month = monthKey(new Date(viewDate + 'T12:00:00'));
+  const ov = store.state.priceOverrides;
+  if (entry.kind === 'food') {
+    return costOfStoredGrams(db, entry.foodId, entry.storedG, month, ov);
+  }
+  const r = db.recipesById[entry.recipeId];
+  if (!r) return 0;
+  const extras = serveWithNutrition(db, r, entry.servings, store.state.katoriMl / 150);
+  return recipeCost(db, r, entry.servings, month, ov) + extras.cost;
+}
+
+function renderToday() {
+  const t = currentTarget();
+  const entries = store.entriesFor(viewDate);
+
+  const d = new Date(viewDate + 'T12:00:00');
+  const isToday = viewDate === today();
+  $('#today-date').textContent = isToday
+    ? 'Today'
+    : d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short' });
+
+  // Daily budget share, so the money signal is comparable day to day.
+  const dailyBudget = weeklyBudget() / 7;
+  const spent = entries.reduce((s, e) => s + entryCost(e), 0);
+  $('#today-budget').textContent =
+    `${d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} · ₹${Math.round(spent)} of ₹${Math.round(dailyBudget)} spent`;
+
+  // --- ring: one arc per meal slot ---
+  const byMeal = {};
+  let total = { kcal: 0, p: 0, c: 0, f: 0, fiber: 0 };
+  for (const e of entries) {
+    const n = entryNutrition(e);
+    byMeal[e.meal] = (byMeal[e.meal] ?? 0) + n.kcal;
+    total = addNutrition(total, n);
+  }
+
+  const R = 92;
+  const C = 2 * Math.PI * R;
+  let offset = 0;
+  const arcs = [];
+  for (const meal of ['breakfast', 'lunch', 'dinner', 'snack']) {
+    const kcal = byMeal[meal] ?? 0;
+    if (kcal <= 0) continue;
+    const frac = Math.min(1, kcal / t.kcal);
+    const len = frac * C;
+    arcs.push(
+      `<circle class="ring-arc" cx="110" cy="110" r="${R}" stroke="${MEAL_COLOUR[meal]}" ` +
+      `stroke-dasharray="${len} ${C}" stroke-dashoffset="${-offset}"></circle>`
+    );
+    offset += len;
+  }
+  $('#ring-arcs').innerHTML = arcs.join('');
+
+  const left = Math.round(t.kcal - total.kcal);
+  const centre = $('.ring-centre');
+  centre.classList.toggle('is-over', left < 0);
+  $('#ring-figure').textContent = Math.abs(left).toLocaleString('en-IN');
+  $('#ring-caption').textContent = left < 0 ? 'over target' : `left of ${t.kcal.toLocaleString('en-IN')}`;
+
+  $('#ring-legend').innerHTML = ['breakfast', 'lunch', 'dinner', 'snack']
+    .filter((m) => byMeal[m] > 0)
+    .map((m) => `<li><i style="background:${MEAL_COLOUR[m]}"></i>${MEAL_LABEL[m]} ${Math.round(byMeal[m])}</li>`)
+    .join('') || '<li>Nothing logged yet</li>';
+
+  // --- meters ---
+  meter('#m-protein', '#m-protein-fill', total.p, t.proteinG, 'g');
+  meter('#m-fibre', '#m-fibre-fill', total.fiber, t.fiberG, 'g');
+  $('#m-spend').textContent = `₹${Math.round(spent)} / ₹${Math.round(dailyBudget)}`;
+  const spendPct = Math.min(100, (spent / dailyBudget) * 100);
+  $('#m-spend-fill').style.width = `${spendPct}%`;
+
+  // --- ledger ---
+  const list = $('#log-list');
+  if (!entries.length) {
+    list.innerHTML = '<li class="empty">Log your first meal and the ring fills by slot.</li>';
+  } else {
+    list.innerHTML = entries
+      .map((e) => {
+        const n = roundNutrition(entryNutrition(e));
+        return `<li>
+          <div class="led-main">
+            <span class="led-name">${escapeHtml(e.label)}</span>
+            <span class="led-sub">${MEAL_LABEL[e.meal]} · ${escapeHtml(e.portionLabel)} · ₹${Math.round(entryCost(e))}</span>
+          </div>
+          <span class="led-fig">${n.kcal} kcal</span>
+          <span class="led-fig">${n.p} p</span>
+          <button class="led-del" data-del="${e.id}" aria-label="Remove ${escapeHtml(e.label)}">✕</button>
+        </li>`;
+      })
+      .join('');
+  }
+
+  renderRepair();
+}
+
+function meter(figSel, fillSel, value, target, unit) {
+  $(figSel).textContent = `${Math.round(value)} / ${target} ${unit}`;
+  const pct = Math.min(100, (value / target) * 100);
+  const fill = $(fillSel);
+  fill.style.width = `${pct}%`;
+  fill.classList.remove('is-over');
+}
+
+// ---------------------------------------------------------------------------
+// Log sheet
+// ---------------------------------------------------------------------------
+
+let pending = null; // { type:'food'|'recipe', id, measureId, qty, katoriSize }
+
+function openSheet() {
+  $('#sheet').hidden = false;
+  $('#portion-pad').hidden = true;
+  $('#search-results').hidden = false;
+  $('#food-search').value = '';
+  renderResults('');
+  setTimeout(() => $('#food-search').focus(), 60);
+}
+
+function closeSheet() {
+  $('#sheet').hidden = true;
+  pending = null;
+}
+
+function currentFilter() {
+  return $('#food-filter .tab[aria-selected="true"]')?.dataset.filter ?? 'all';
+}
+
+function renderResults(q) {
+  const term = q.trim().toLowerCase();
+  const month = monthKey();
+  const filter = currentFilter();
+
+  const wantRecipes = filter === 'all' || filter === 'recipe';
+  const wantFoods = filter !== 'recipe';
+
+  const recipes = !wantRecipes ? [] : db.recipes
+    .filter((r) => !term || r.name.toLowerCase().includes(term))
+    .slice(0, term ? 8 : 5)
+    .map((r) => {
+      const n = roundNutrition(recipeNutrition(db, r, 1));
+      const c = Math.round(recipeCost(db, r, 1, month, store.state.priceOverrides));
+      return `<li><button data-pick-recipe="${r.id}">
+        <span class="res-name">${escapeHtml(r.name)}<br><span class="res-sub">one serving, cooked · ₹${c}</span></span>
+        <span class="res-fig">${n.kcal} kcal · ${n.p} g p</span>
+      </button></li>`;
+    });
+
+  const foods = !wantFoods ? [] : db.foods
+    .filter((f) => {
+      if (filter === 'packaged' && f.cat !== 'packaged') return false;
+      if (filter === 'eatingout' && f.cat !== 'eatingout') return false;
+      if (filter === 'raw' && (f.cat === 'packaged' || f.cat === 'eatingout')) return false;
+      if (!term) return true;
+      return matchesFood(f, term);
+    })
+    .slice(0, 16)
+    .map((f) => {
+      const measures = measuresFor(db, f);
+      const m = measures[0];
+      const { storedG } = portionToStoredGrams({ food: f, measure: m, qty: 1, katoriScale: store.state.katoriMl / 150 });
+      const n = roundNutrition(nutritionFor(f, storedG));
+      const badge = f.isScanned ? '<span class="badge-scan">scanned</span>'
+                  : f.nova === 4 ? '<span class="badge-nova">ultra-processed</span>' : '';
+      return `<li><button data-pick-food="${f.id}">
+        <span class="res-name">${escapeHtml(f.name)} ${badge}<br><span class="res-sub">${m ? escapeHtml(m.label) : 'per 100 g'}</span></span>
+        <span class="res-fig">${n.kcal} kcal · ${n.p} g p</span>
+      </button></li>`;
+    });
+
+  $('#search-results').innerHTML = [...recipes, ...foods].join('') ||
+    '<li class="empty">Nothing matches. Try a shorter word, or scan the barcode.</li>';
+}
+
+function openPortionPad(type, id) {
+  if (type === 'food') {
+    const food = db.foodsById[id];
+    const measures = measuresFor(db, food);
+    pending = { type, id, measureId: measures[0]?.id ?? 'g', qty: 1, katoriSize: 'standard' };
+  } else {
+    pending = { type, id, qty: 1 };
+  }
+  renderPortionPad();
+  $('#portion-pad').hidden = false;
+  // Put the pad where the results were, rather than below a list the user has
+  // already finished with.
+  $('#search-results').hidden = true;
+  $('.sheet-panel').scrollTop = 0;
+}
+
+function renderPortionPad() {
+  const pad = $('#portion-pad');
+  if (!pending) return;
+
+  if (pending.type === 'recipe') {
+    const r = db.recipesById[pending.id];
+    const n = roundNutrition(
+      addNutrition(
+        recipeNutrition(db, r, pending.qty),
+        serveWithNutrition(db, r, pending.qty, store.state.katoriMl / 150).nutrition
+      )
+    );
+    const cost = Math.round(
+      recipeCost(db, r, pending.qty, monthKey(), store.state.priceOverrides) +
+      serveWithNutrition(db, r, pending.qty, store.state.katoriMl / 150).cost
+    );
+    pad.innerHTML = `
+      <div class="pp-head"><span class="pp-name">${escapeHtml(r.name)}</span></div>
+      <div class="qty-row">
+        <button class="btn qty-step" data-qty="-0.25" aria-label="Less">−</button>
+        <input id="pp-qty" type="number" step="0.25" min="0.25" max="6" value="${pending.qty}" aria-label="Servings">
+        <button class="btn qty-step" data-qty="0.25" aria-label="More">+</button>
+        <span class="led-sub">servings${r.serveWith?.length ? ', with the usual roti or rice' : ''}</span>
+      </div>
+      <div class="pp-readout">
+        <span><b>${n.kcal}</b> kcal</span><span><b>${n.p}</b> g protein</span>
+        <span><b>${n.fiber}</b> g fibre</span><span><b>₹${cost}</b></span>
+      </div>
+      <button class="btn btn-primary btn-block" id="pp-save">Add to ${MEAL_LABEL[selectedMeal()].toLowerCase()}</button>
+    `;
+  } else {
+    const food = db.foodsById[pending.id];
+    const measures = measuresFor(db, food);
+    const measure = db.measuresById[pending.measureId];
+    const isKatori = /^(katori|glass|cup|ladle|bowl)_/.test(pending.measureId);
+    const sizeScale = { small: 100 / 150, standard: 1, large: 200 / 150 }[pending.katoriSize] ?? 1;
+    const katoriScale = (store.state.katoriMl / 150) * sizeScale;
+
+    const { storedG, addFatG } = portionToStoredGrams({ food, measure, qty: pending.qty, katoriScale });
+    let n = nutritionFor(food, storedG);
+    if (addFatG) n = addNutrition(n, nutritionFor(db.foodsById.mustard_oil, addFatG));
+    const rn = roundNutrition(n);
+    const cost = Math.round(
+      costOfStoredGrams(db, food.id, storedG, monthKey(), store.state.priceOverrides) +
+      (addFatG ? costOfStoredGrams(db, 'mustard_oil', addFatG, monthKey(), store.state.priceOverrides) : 0)
+    );
+
+    pad.innerHTML = `
+      <div class="pp-head">
+        <span class="pp-name">${escapeHtml(food.name)}</span>
+        <span class="led-sub">${formatQty(Math.round(storedG))} as bought</span>
+      </div>
+      ${isKatori ? `
+      <div class="katori-row" role="group" aria-label="Katori size">
+        ${['small', 'standard', 'large'].map((s) => `
+          <button class="katori" data-size="${s}" aria-pressed="${pending.katoriSize === s}">${s === 'standard' ? 'usual' : s}</button>
+        `).join('')}
+      </div>` : ''}
+      <div class="measure-grid">
+        ${measures.slice(0, 6).map((m) => `
+          <button class="measure-btn" data-measure="${m.id}" aria-pressed="${m.id === pending.measureId}">${escapeHtml(m.label)}</button>
+        `).join('')}
+      </div>
+      <div class="qty-row">
+        <button class="btn qty-step" data-qty="-0.5" aria-label="Less">−</button>
+        <input id="pp-qty" type="number" step="0.5" min="0.5" value="${pending.qty}" aria-label="Quantity">
+        <button class="btn qty-step" data-qty="0.5" aria-label="More">+</button>
+        <span class="led-sub">× ${escapeHtml(measure?.label ?? '')}</span>
+      </div>
+      ${addFatG ? `<p class="note">Plus about ${addFatG} g of oil or ghee from the tawa, counted in.</p>` : ''}
+      <div class="pp-readout">
+        <span><b>${rn.kcal}</b> kcal</span><span><b>${rn.p}</b> g protein</span>
+        <span><b>${rn.fiber}</b> g fibre</span><span><b>₹${cost}</b></span>
+      </div>
+      <button class="btn btn-primary btn-block" id="pp-save">Add to ${MEAL_LABEL[selectedMeal()].toLowerCase()}</button>
+    `;
+  }
+}
+
+function selectedMeal() {
+  return $('#meal-pick input:checked')?.value ?? 'lunch';
+}
+
+function savePending() {
+  if (!pending) return;
+  const meal = selectedMeal();
+
+  if (pending.type === 'recipe') {
+    const r = db.recipesById[pending.id];
+    store.addEntry(viewDate, {
+      kind: 'recipe', recipeId: r.id, servings: pending.qty, meal,
+      label: r.name,
+      portionLabel: `${pending.qty} serving${pending.qty === 1 ? '' : 's'}`,
+    });
+    // Cooking it uses it up.
+    store.consumeFromPantry(r.ing.map((i) => ({ food: i.food, g: i.g * pending.qty })));
+  } else {
+    const food = db.foodsById[pending.id];
+    const measure = db.measuresById[pending.measureId];
+    const sizeScale = { small: 100 / 150, standard: 1, large: 200 / 150 }[pending.katoriSize] ?? 1;
+    const katoriScale = (store.state.katoriMl / 150) * sizeScale;
+    const { storedG, addFatG } = portionToStoredGrams({ food, measure, qty: pending.qty, katoriScale });
+
+    store.addEntry(viewDate, {
+      kind: 'food', foodId: food.id, storedG, meal,
+      label: food.name,
+      portionLabel: `${pending.qty} × ${measure?.label ?? 'g'}`,
+    });
+    if (addFatG) {
+      store.addEntry(viewDate, {
+        kind: 'food', foodId: 'mustard_oil', storedG: addFatG, meal,
+        label: 'Oil on the tawa', portionLabel: `${addFatG} g`,
+      });
+    }
+  }
+
+  closeSheet();
+  renderToday();
+  toast('Logged');
+}
+
+function logPlate(plateId) {
+  const plate = db.plateHeuristics[plateId];
+  if (!plate) return;
+  const meal = 'lunch';
+  const katoriScale = store.state.katoriMl / 150;
+
+  const entries = [];
+  for (const part of plate) {
+    const measure = db.measuresById[part.measure];
+    if (!measure) continue;
+    const foodId = part.measure.startsWith('katori_rice') ? 'rice'
+                 : part.measure.startsWith('katori_curd') ? 'curd'
+                 : part.measure.startsWith('katori_dal') ? 'toor_dal'
+                 : part.measure.startsWith('katori_sabzi') ? 'potato'
+                 : part.measure.startsWith('tsp_oil') ? 'mustard_oil'
+                 : 'atta';
+    const food = db.foodsById[foodId];
+    const { storedG } = portionToStoredGrams({ food, measure, qty: part.qty, katoriScale });
+    entries.push({
+      kind: 'food', foodId, storedG, meal,
+      label: food.name,
+      portionLabel: `${part.qty} × ${measure.label}`,
+    });
+  }
+  store.addEntries(viewDate, entries);
+  renderToday();
+  toast('Thali logged — adjust any line that was bigger or smaller');
+}
+
+// ---------------------------------------------------------------------------
+// Plan
+// ---------------------------------------------------------------------------
+
+function buildPlan() {
+  const p = store.state.profile;
+  const plan = generateWeekPlan(db, {
+    profile: p,
+    target: currentTarget(),
+    month: monthKey(),
+    weeklyBudget: weeklyBudget(),
+    household: p.household ?? 1,
+    dislikes: store.state.dislikes,
+    priceOverrides: store.state.priceOverrides,
+    katoriScale: store.state.katoriMl / 150,
+  });
+  store.update({ plan });
+  planTabDay = 0;
+  return plan;
+}
+
+function renderPlan() {
+  let plan = store.state.plan;
+  if (!plan || plan.error || !plan.days) plan = buildPlan();
+
+  if (plan.error) {
+    $('#plan-sub').textContent = '';
+    $('#budget-strip').innerHTML = `<span class="bs-lab">${escapeHtml(plan.error)}</span>`;
+    $('#plan-day').innerHTML = '';
+    $('#shopping').innerHTML = '';
+    return;
+  }
+
+  const p = store.state.profile;
+  const rawList = shoppingList(db, plan, {
+    household: p.household ?? 1,
+    month: plan.month,
+    priceOverrides: store.state.priceOverrides,
+  });
+  // What's already in the kitchen doesn't need buying again.
+  const list = shoppingListMinusPantry(db, rawList, store.state.pantry);
+
+  $('#plan-sub').textContent =
+    `${p.household > 1 ? `${p.household} people · ` : ''}${new Date().toLocaleDateString(undefined, { month: 'long' })} prices`;
+
+  const budget = weeklyBudget();
+  const strip = $('#budget-strip');
+  strip.classList.toggle('is-over', !plan.withinBudget);
+  strip.innerHTML = `
+    <div><div class="bs-fig">₹${list.total}</div><div class="bs-lab">shopping list</div></div>
+    <div><div class="bs-fig">₹${Math.round(budget)}</div><div class="bs-lab">weekly budget</div></div>
+    <div><div class="bs-fig">₹${Math.round(budget - list.total)}</div><div class="bs-lab">${budget - list.total >= 0 ? 'spare' : 'short'}</div></div>
+  `;
+
+  const note = $('#budget-note');
+  note.hidden = !plan.budgetNote;
+  if (plan.budgetNote) note.textContent = plan.budgetNote;
+
+  $('#plan-tabs').innerHTML = plan.days
+    .map((d, i) => {
+      const dt = new Date(d.date + 'T12:00:00');
+      return `<button class="tab" role="tab" aria-selected="${i === planTabDay}" data-day="${i}">${dt.toLocaleDateString(undefined, { weekday: 'short' })}</button>`;
+    })
+    .join('');
+
+  renderPlanDay(plan, planTabDay);
+
+  $('#shopping').innerHTML = list.items
+    .map((i) => {
+      const avail = i.availability;
+      const tag = avail === 'peak' ? '<span class="r-tag is-peak">in season</span>'
+                : avail === 'off' || avail === 'scarce' ? '<span class="r-tag is-off">out of season</span>'
+                : '';
+      const overridden = store.state.priceOverrides[i.foodId] != null;
+      if (i.alreadyHave) {
+        return `<li style="opacity:.55">
+          <div class="led-main">
+            <span class="led-name">${escapeHtml(i.name)}</span>
+            <span class="led-sub">already in your kitchen</span>
+          </div>
+          <span class="led-fig">—</span>
+        </li>`;
+      }
+      return `<li>
+        <div class="led-main">
+          <span class="led-name">${escapeHtml(i.name)}</span>
+          <span class="led-sub">${i.buyLabel}${i.partiallyHave ? ' more needed' : ''} ${tag}</span>
+        </div>
+        <button class="link" data-price="${i.foodId}" title="Correct this price">₹${i.pricePerKg}/kg${overridden ? ' ✓' : ''}</button>
+        <span class="led-fig led-fig-money">₹${i.cost}</span>
+      </li>`;
+    })
+    .join('');
+}
+
+function renderPlanDay(plan, idx) {
+  const day = plan.days[idx];
+  if (!day) return;
+  const t = currentTarget();
+
+  $('#plan-day').innerHTML = `
+    ${day.meals.map((m) => {
+      const r = db.recipesById[m.recipeId];
+      const withTxt = (m.serveWith ?? []).map((s) => {
+        const [mid, q] = s.split(':');
+        const measure = db.measuresById[mid];
+        const qty = Number(q ?? 1) * m.servings;
+        return `${qty % 1 === 0 ? qty : qty.toFixed(1)} × ${measure?.label ?? mid}`;
+      }).join(', ');
+      return `<div class="pd-meal">
+        <div class="pd-top">
+          <span class="pd-slot">${MEAL_LABEL[m.meal]}</span>
+          <span class="pd-name">${escapeHtml(m.name)}</span>
+          <span class="pd-figs">${m.nutrition.kcal} kcal · ${m.nutrition.p} p · ₹${m.cost}</span>
+        </div>
+        ${withTxt ? `<p class="pd-with">with ${escapeHtml(withTxt)}</p>` : ''}
+        <p class="pd-with"><button class="link" data-cook="${m.recipeId}">Recipe</button>
+          · <button class="link" data-logplan="${idx}:${m.meal}">Log as eaten</button>
+          ${r ? `· <button class="link" data-dislike="${m.recipeId}">Not this</button>` : ''}
+        </p>
+      </div>`;
+    }).join('')}
+    <div class="pd-totals">
+      <span>${day.nutrition.kcal} kcal</span>
+      <span>${day.nutrition.p} g protein</span>
+      <span>₹${day.cost}</span>
+      <span style="color:${day.proteinGap < -15 ? 'var(--madder)' : 'var(--ink-45)'}">
+        ${day.proteinGap >= 0 ? `+${day.proteinGap}` : day.proteinGap} g vs ${t.proteinG} target
+      </span>
+    </div>
+  `;
+}
+
+// ---------------------------------------------------------------------------
+// Cook
+// ---------------------------------------------------------------------------
+
+function renderCook() {
+  const month = monthKey();
+  const term = ($('#recipe-search').value || '').trim().toLowerCase();
+  const sort = $('#recipe-sort input:checked')?.value ?? 'season';
+  const p = store.state.profile;
+  const ov = store.state.priceOverrides;
+
+  $('#cook-sub').textContent = `${db.recipes.length} recipes · ${new Date().toLocaleDateString(undefined, { month: 'long' })} prices`;
+
+  let list = db.recipes.filter((r) => {
+    if (term && !r.name.toLowerCase().includes(term)) return false;
+    if (p.diet === 'veg' && !r.veg) return false;
+    if (p.diet === 'egg' && !r.veg && r.id !== 'egg_bhurji') return false;
+    return true;
+  });
+
+  const seasonScore = (r) => {
+    const states = r.ing.map((i) => availability(db, i.food, month)).filter(Boolean);
+    if (states.includes('off')) return 0;
+    if (states.includes('scarce')) return 1;
+    if (states.includes('peak')) return 3;
+    return 2;
+  };
+
+  if (sort === 'protein') list.sort((a, b) => proteinValue(db, a, month, ov) - proteinValue(db, b, month, ov));
+  else if (sort === 'cost') list.sort((a, b) => recipeCost(db, a, 1, month, ov) - recipeCost(db, b, 1, month, ov));
+  else list.sort((a, b) => seasonScore(b) - seasonScore(a) || a.name.localeCompare(b.name));
+
+  $('#recipe-list').innerHTML = list
+    .map((r) => {
+      const n = roundNutrition(recipeNutrition(db, r, 1));
+      const cost = recipeCost(db, r, 1, month, ov);
+      const pv = proteinValue(db, r, month, ov);
+      const s = seasonScore(r);
+      const tag = s === 3 ? '<span class="r-tag is-peak">in season now</span>'
+                : s === 0 ? '<span class="r-tag is-off">not in season</span>' : '';
+      const disliked = store.state.dislikes.includes(r.id);
+      return `<li class="recipe"><details data-recipe="${r.id}">
+        <summary class="recipe-sum">
+          <span class="r-name">${escapeHtml(r.name)}
+            <span class="r-tags">
+              ${tag}
+              <span class="r-tag">${r.timeMin} min</span>
+              <span class="r-tag">₹${pv.toFixed(2)}/g protein</span>
+              ${disliked ? '<span class="r-tag is-off">hidden from plans</span>' : ''}
+            </span>
+          </span>
+          <span class="r-figs">${n.kcal} kcal · ${n.p} p · ₹${Math.round(cost)}</span>
+        </summary>
+        <div class="recipe-body" data-body="${r.id}"></div>
+      </details></li>`;
+    })
+    .join('') || '<li class="empty">No recipes match that.</li>';
+}
+
+function renderRecipeBody(recipeId, servings) {
+  const r = db.recipesById[recipeId];
+  const host = $(`[data-body="${recipeId}"]`);
+  if (!r || !host) return;
+  const month = monthKey();
+  const ov = store.state.priceOverrides;
+
+  const n = roundNutrition(recipeNutrition(db, r, servings));
+  const cost = recipeCost(db, r, servings, month, ov);
+
+  host.innerHTML = `
+    <div class="scale-row">
+      <label>Cooking for <input type="number" min="1" max="6" step="1" value="${servings}" data-scale="${r.id}" aria-label="Servings"></label>
+      <span class="led-sub">${n.kcal} kcal · ${n.p} g protein · ₹${Math.round(cost)} total · ₹${Math.round(cost / servings)} each</span>
+    </div>
+    <ul class="ing-list">
+      ${r.ing.map((i) => {
+        const food = db.foodsById[i.food];
+        const g = Math.round(i.g * servings);
+        return `<li><span>${escapeHtml(food?.name ?? i.food)}</span>
+          <span class="ing-q">${formatQty(g)} · ₹${Math.round(costOfStoredGrams(db, i.food, g, month, ov))}</span></li>`;
+      }).join('')}
+    </ul>
+    <ol class="steps">${r.steps.map((s) => `<li>${escapeHtml(s)}</li>`).join('')}</ol>
+    ${r.notes ? `<p class="r-note">${escapeHtml(r.notes)}</p>` : ''}
+    <div class="row-actions" style="margin-top:14px">
+      <button class="btn" data-logrecipe="${r.id}">Log one serving</button>
+      <button class="btn btn-quiet" data-dislike="${r.id}">${store.state.dislikes.includes(r.id) ? 'Allow in plans' : 'Never plan this'}</button>
+    </div>
+  `;
+}
+
+// ---------------------------------------------------------------------------
+// You
+// ---------------------------------------------------------------------------
+
+function renderYou() {
+  const p = store.state.profile;
+  const t = currentTarget();
+  $('#you-sub').textContent = `${p.name || 'You'} · ${p.weightKg} kg · BMI ${bmi(p)}`;
+
+  // --- weight trend ---
+  const trend = weightTrend(store.state.weights);
+  drawTrend(trend);
+  $('#trend-note').textContent = trend.confident
+    ? `Seven-day average is moving ${trend.ratePerWeek > 0 ? 'up' : 'down'} ${Math.abs(trend.ratePerWeek)} kg a week.`
+    : (trend.note ?? 'Add a weigh-in to start the trend.');
+
+  // --- weekly review ---
+  const adherence = computeAdherence(t);
+  const s = suggestAdjustment({ target: t, trend, adherence });
+  const box = $('#review');
+  box.classList.toggle('is-warn', s.action !== 'hold');
+  box.innerHTML = `<p style="margin:0">${escapeHtml(s.message)}</p>` +
+    (s.deltaKcal ? `<button class="btn btn-quiet" style="margin-top:10px" id="btn-apply-nudge">Apply ${s.deltaKcal > 0 ? '+' : ''}${s.deltaKcal} kcal to my target</button>` : '');
+  if (s.deltaKcal) {
+    $('#btn-apply-nudge').onclick = () => {
+      store.update({ targetNudge: (store.state.targetNudge ?? 0) + s.deltaKcal });
+      renderYou();
+      toast('Target adjusted');
+    };
+  }
+
+  $('#katori-note').textContent = `Currently ${store.state.katoriMl} ml. ` +
+    (store.state.katoriMl === 150 ? 'That is the standard assumption.' : 'Every katori you log scales to this.');
+  $('#katori-form input').value = store.state.katoriMl;
+
+  const ov = Object.keys(store.state.priceOverrides).length;
+  $('#target-detail').innerHTML = `
+    <div><div class="led-main"><span class="led-name">Maintenance</span><span class="led-sub">what you burn</span></div><span class="led-fig">${t.maintenanceKcal} kcal</span></div>
+    <div><div class="led-main"><span class="led-name">Daily target</span><span class="led-sub">${t.nudged ? `includes a ${t.nudged > 0 ? '+' : ''}${t.nudged} kcal review adjustment` : 'from your goal rate'}</span></div><span class="led-fig">${t.kcal} kcal</span></div>
+    <div><div class="led-main"><span class="led-name">Protein</span><span class="led-sub">1.6 g per kg reference weight</span></div><span class="led-fig">${t.proteinG} g</span></div>
+    <div><div class="led-main"><span class="led-name">Projected loss</span><span class="led-sub">asked for ${t.requestedKgPerWeek} kg/week</span></div><span class="led-fig">${t.projectedKgPerWeek} kg/wk</span></div>
+    <div><div class="led-main"><span class="led-name">Prices you've corrected</span><span class="led-sub">used in every plan</span></div><span class="led-fig">${ov}</span></div>
+  `;
+  if (t.notes.length) {
+    $('#target-detail').innerHTML += `<div style="border:0"><p class="note">${t.notes.map(escapeHtml).join(' ')}</p></div>`;
+  }
+}
+
+function computeAdherence(t) {
+  const dates = Object.keys(store.state.log).sort().slice(-14);
+  if (dates.length < 4) return null;
+  let hit = 0;
+  for (const d of dates) {
+    const kcal = store.entriesFor(d).reduce((s, e) => s + entryNutrition(e).kcal, 0);
+    if (kcal > 0 && kcal <= t.kcal * 1.08) hit++;
+  }
+  return hit / dates.length;
+}
+
+function drawTrend(trend) {
+  const svg = $('#trend');
+  const pts = trend.smoothed;
+  const raw = store.state.weights;
+  if (!raw.length) {
+    svg.innerHTML = '<title>Weight</title><text x="160" y="58" text-anchor="middle" font-size="11" fill="#8291A0" font-family="Spline Sans, sans-serif">No weigh-ins yet</text>';
+    return;
+  }
+
+  const W = 320, H = 110, pad = 12;
+  const kgs = [...raw.map((r) => r.kg), ...pts.map((p) => p.kg)];
+  const min = Math.min(...kgs) - 0.4, max = Math.max(...kgs) + 0.4;
+  const span = Math.max(0.8, max - min);
+  const x = (i, n) => pad + (i / Math.max(1, n - 1)) * (W - pad * 2);
+  const y = (kg) => H - pad - ((kg - min) / span) * (H - pad * 2);
+
+  const dots = raw.map((r, i) => `<circle class="trend-dot" cx="${x(i, raw.length).toFixed(1)}" cy="${y(r.kg).toFixed(1)}" r="2"></circle>`).join('');
+  const line = pts.length > 1
+    ? `<polyline class="trend-line" points="${pts.map((p, i) => `${x(i, pts.length).toFixed(1)},${y(p.kg).toFixed(1)}`).join(' ')}"></polyline>`
+    : '';
+
+  svg.innerHTML = `<title>Weight, with a seven-day average</title>${dots}${line}
+    <text x="${W - pad}" y="${pad + 2}" text-anchor="end" font-size="9" fill="#8291A0" font-family="Spline Sans Mono, monospace">${max.toFixed(1)}</text>
+    <text x="${W - pad}" y="${H - pad + 4}" text-anchor="end" font-size="9" fill="#8291A0" font-family="Spline Sans Mono, monospace">${min.toFixed(1)}</text>`;
+}
+
+// ---------------------------------------------------------------------------
+// Day repair
+// ---------------------------------------------------------------------------
+
+function slotsStillToCome() {
+  const logged = new Set(store.entriesFor(viewDate).map((e) => e.meal));
+  const order = ['breakfast', 'lunch', 'dinner', 'snack'];
+  const hour = viewDate === today() ? new Date().getHours() : 0;
+
+  return order.filter((slot) => {
+    if (logged.has(slot)) return false;
+    if (viewDate !== today()) return true;
+    if (slot === 'breakfast') return hour < 11;
+    if (slot === 'lunch') return hour < 16;
+    if (slot === 'dinner') return hour < 23;
+    return hour < 20;
+  });
+}
+
+function renderRepair() {
+  const box = $('#repair');
+  const entries = store.entriesFor(viewDate);
+  if (!entries.length) { box.hidden = true; return; }
+
+  const t = currentTarget();
+  let consumed = { kcal: 0, p: 0, c: 0, f: 0, fiber: 0 };
+  let spent = 0;
+  for (const e of entries) { consumed = addNutrition(consumed, entryNutrition(e)); spent += entryCost(e); }
+
+  const slotsLeft = slotsStillToCome();
+  const r = repairDay(db, {
+    profile: store.state.profile,
+    target: t,
+    consumed,
+    slotsLeft,
+    month: monthKey(new Date(viewDate + 'T12:00:00')),
+    dailyBudget: weeklyBudget() / 7,
+    spentToday: spent,
+    dislikes: store.state.dislikes,
+    priceOverrides: store.state.priceOverrides,
+    katoriScale: store.state.katoriMl / 150,
+  });
+
+  box.hidden = false;
+  box.className = `repair ${r.verdict === 'over' ? 'is-over' : r.verdict === 'tight' ? 'is-tight' : ''}`;
+
+  const daysLeft = 6 - new Date(viewDate + 'T12:00:00').getDay(); // days left before next Sunday
+  const spread = r.offerWeekSpread
+    ? spreadSurplus({ surplusKcal: consumed.kcal - t.kcal, daysLeft: Math.max(0, daysLeft), target: t, profile: store.state.profile })
+    : null;
+
+  box.innerHTML = `
+    <p class="repair-msg">${escapeHtml(r.message)}</p>
+    ${r.suggestions.map((sg) => `
+      <div class="repair-pick">
+        <span class="rp-slot">${MEAL_LABEL[sg.slot]}</span>
+        <span class="rp-name">${escapeHtml(sg.name)}${sg.servings !== 1 ? ` ×${sg.servings}` : ''}</span>
+        <span class="rp-figs">${sg.nutrition.kcal} kcal · ${sg.nutrition.p} p · ₹${sg.cost}</span>
+      </div>
+    `).join('')}
+    ${spread ? `<p class="note" style="margin-top:10px">${escapeHtml(spread.message)}</p>` : ''}
+    <div class="row-actions">
+      ${r.suggestions.length ? `<button class="btn" id="btn-accept-repair">Log ${r.suggestions.length === 1 ? 'it' : 'these'}</button>` : ''}
+      ${spread && spread.perDay > 0 ? `<button class="btn" id="btn-apply-spread">Trim ${spread.perDay} kcal/day this week</button>` : ''}
+      <button class="btn btn-quiet" id="btn-hide-repair">Dismiss</button>
+    </div>
+  `;
+
+  const accept = $('#btn-accept-repair');
+  if (accept) accept.onclick = () => {
+    for (const sg of r.suggestions) {
+      store.addEntry(viewDate, {
+        kind: 'recipe', recipeId: sg.recipeId, servings: sg.servings, meal: sg.slot,
+        label: sg.name, portionLabel: `${sg.servings} serving${sg.servings === 1 ? '' : 's'}`,
+      });
+    }
+    renderToday();
+    toast('Added to today');
+  };
+
+  const applySpread = $('#btn-apply-spread');
+  if (applySpread) applySpread.onclick = () => {
+    store.update({ targetNudge: (store.state.targetNudge ?? 0) - spread.perDay });
+    renderToday();
+    toast(`Target trimmed ${spread.perDay} kcal a day`);
+  };
+
+  $('#btn-hide-repair').onclick = () => { box.hidden = true; };
+}
+
+// ---------------------------------------------------------------------------
+// Barcode scanning
+// ---------------------------------------------------------------------------
+
+async function handleBarcode(code) {
+  toast('Looking it up…');
+  const res = await lookupBarcode(code);
+
+  if (!res.ok) { toast(res.reason); return; }
+
+  store.addScanned(res.food);
+  rebuildDb();
+  closeScanPane();
+  $('#food-search').value = res.food.name;
+  renderResults(res.food.name);
+  openPortionPad('food', res.food.id);
+  toast(`Found ${res.food.name}${res.food.priceUnknown ? ' — tap the price to add what you paid' : ''}`);
+}
+
+function openScanPane() {
+  const pane = $('#scan-pane');
+  pane.hidden = false;
+  $('#search-results').hidden = true;
+  $('#portion-pad').hidden = true;
+
+  if (canScan()) {
+    scanFromCamera($('#scan-video'), { onError: (m) => toast(m) }).then((code) => {
+      if (code) handleBarcode(code);
+    });
+  } else {
+    toast('This browser cannot use the camera — type the digits instead.');
+  }
+}
+
+function closeScanPane() {
+  const v = $('#scan-video');
+  if (v?._stopScan) v._stopScan();
+  if (v?.srcObject) { v.srcObject.getTracks().forEach((t) => t.stop()); v.srcObject = null; }
+  $('#scan-pane').hidden = true;
+  $('#search-results').hidden = false;
+}
+
+// ---------------------------------------------------------------------------
+// Kitchen
+// ---------------------------------------------------------------------------
+
+function kitchenMode() {
+  return $('#kitchen-mode input:checked')?.value ?? 'cook';
+}
+
+function renderKitchen() {
+  const mode = kitchenMode();
+  $('#kitchen-cook').hidden = mode !== 'cook';
+  $('#kitchen-stock').hidden = mode !== 'stock';
+
+  const pantry = store.state.pantry;
+  const ids = Object.keys(pantry);
+  $('#kitchen-sub').textContent = ids.length
+    ? `${ids.length} thing${ids.length === 1 ? '' : 's'} tracked`
+    : 'Nothing listed yet';
+
+  if (mode === 'cook') renderCookNow(ids);
+  else renderPantry();
+}
+
+function renderCookNow(pantryIds) {
+  const matches = pantryMatch(db, pantryIds, {
+    profile: store.state.profile,
+    month: monthKey(),
+    priceOverrides: store.state.priceOverrides,
+    dislikes: store.state.dislikes,
+  });
+
+  const ready = matches.filter((m) => m.canCookNow);
+  const close = matches.filter((m) => !m.canCookNow && m.missing.length <= 2);
+
+  $('#cook-now-note').textContent = pantryIds.length === 0
+    ? 'Add what you have under "What I have" and this ranks what you can cook right now. Oil, ghee, sugar, tea, ginger, garlic, chilli and coriander are assumed present.'
+    : `${ready.length} ready to cook, ${close.length} within a shop of it.`;
+
+  const rows = [...ready, ...close].slice(0, 25);
+  $('#cook-now-list').innerHTML = rows.length
+    ? rows.map((m) => {
+        const pct = Math.round(m.coverage * 100);
+        const circ = 2 * Math.PI * 14;
+        return `<li class="cook-row">
+          <span class="cover ${m.canCookNow ? '' : 'is-partial'}">
+            <svg viewBox="0 0 34 34" aria-hidden="true">
+              <circle class="cov-track" cx="17" cy="17" r="14"></circle>
+              <circle class="cov-fill" cx="17" cy="17" r="14"
+                stroke-dasharray="${(m.coverage * circ).toFixed(1)} ${circ.toFixed(1)}"></circle>
+            </svg>
+            ${pct}
+          </span>
+          <span class="cook-main">
+            <span class="cook-name">${escapeHtml(m.name)}</span>
+            <span class="cook-sub">${m.canCookNow
+              ? `everything in · ${m.timeMin} min`
+              : `<span class="miss">need ${escapeHtml(m.missingNames.join(', '))}</span> · about ₹${m.missingCost}`}</span>
+          </span>
+          <span class="cook-figs">${m.nutrition.kcal} kcal · ${m.nutrition.p} p</span>
+          <button class="link" data-cooknow="${m.recipeId}">Cook</button>
+        </li>`;
+      }).join('')
+    : '<li class="empty">Nothing matches yet. Add a few ingredients under "What I have".</li>';
+}
+
+function renderPantry() {
+  const pantry = store.state.pantry;
+  const ids = Object.keys(pantry).sort((a, b) =>
+    (db.foodsById[a]?.name ?? a).localeCompare(db.foodsById[b]?.name ?? b));
+
+  $('#pantry-list').innerHTML = ids.length
+    ? ids.map((id) => {
+        const f = db.foodsById[id];
+        const held = pantry[id];
+        const counting = held.haveG != null;
+        return `<li class="pitem">
+          <div class="pi-head">
+            <span class="pi-name">${escapeHtml(f?.name ?? id)}</span>
+            <button class="pi-del" data-prm="${id}" aria-label="Remove ${escapeHtml(f?.name ?? id)}">✕</button>
+          </div>
+          <div class="pi-ctl">
+            <div class="pi-seg" role="group" aria-label="How to track ${escapeHtml(f?.name ?? id)}">
+              <button type="button" data-pmode="${id}:always" aria-pressed="${!counting}">Always have</button>
+              <button type="button" data-pmode="${id}:count" aria-pressed="${counting}">Count it</button>
+            </div>
+            ${counting ? `
+            <div class="pi-amount">
+              <button type="button" class="pi-step" data-pstep="${id}:-100" aria-label="Less">−</button>
+              <input class="pi-qty" type="number" inputmode="numeric" min="0" step="50"
+                value="${held.haveG}" data-pq="${id}"
+                aria-label="Amount of ${escapeHtml(f?.name ?? id)} in grams">
+              <span class="pi-unit">g</span>
+              <button type="button" class="pi-step" data-pstep="${id}:100" aria-label="More">+</button>
+            </div>` : ''}
+          </div>
+        </li>`;
+      }).join('')
+    : `<li class="pantry-empty">
+         <p class="pe-title">Nothing here yet</p>
+         <p class="note">Search above for what is in your fridge and cupboard. Oil, ghee, sugar, tea, ginger, garlic, chilli and coriander are already assumed.</p>
+       </li>`;
+}
+
+function renderPantrySearch(q) {
+  const term = q.trim().toLowerCase();
+  const box = $('#pantry-results');
+  if (!term) { box.innerHTML = ''; return; }
+  const held = store.state.pantry;
+
+  const hits = db.foods
+    .filter((f) => f.cat !== 'packaged' && f.cat !== 'eatingout')
+    .filter((f) => matchesFood(f, term))
+    .slice(0, 8);
+
+  box.innerHTML = hits.length
+    ? hits.map((f) => {
+        const already = !!held[f.id];
+        const staple = ASSUMED_STAPLES.has(f.id);
+        return `<li><button data-padd="${f.id}" ${already ? 'disabled' : ''}>
+          <span class="res-name">${escapeHtml(f.name)}${staple ? ' <span class="badge-scan">assumed</span>' : ''}</span>
+          <span class="res-fig">${already ? 'already added' : 'Add'}</span>
+        </button></li>`;
+      }).join('')
+    : '<li class="empty">No match. Try the English or Hindi name.</li>';
+}
+
+// ---------------------------------------------------------------------------
+// Events
+// ---------------------------------------------------------------------------
+
+function wireEvents() {
+  $('#setup-form').addEventListener('input', updateSetupPreview);
+  $('#setup-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const profile = readSetupForm();
+    store.update({ profile, plan: null });
+    $('#nav').hidden = false;
+    show('today');
+    toast(`Target set: ${currentTarget().kcal} kcal a day`);
+  });
+
+  $('#nav').addEventListener('click', (e) => {
+    const btn = e.target.closest('.nav-btn');
+    if (btn) show(btn.dataset.screen);
+  });
+
+  $('#btn-prev-day').onclick = () => { viewDate = shiftDate(viewDate, -1); renderToday(); };
+  $('#btn-next-day').onclick = () => {
+    if (viewDate >= today()) return toast('That day hasn\'t happened yet');
+    viewDate = shiftDate(viewDate, 1); renderToday();
+  };
+
+  $('#btn-open-log').onclick = openSheet;
+  $('#btn-close-sheet').onclick = closeSheet;
+  $('#sheet').addEventListener('click', (e) => { if (e.target.id === 'sheet') closeSheet(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#sheet').hidden) closeSheet(); });
+
+  $('#food-search').addEventListener('input', (e) => {
+    $('#search-results').hidden = false;
+    $('#portion-pad').hidden = true;
+    pending = null;
+    renderResults(e.target.value);
+  });
+  $('#meal-pick').addEventListener('change', () => { if (pending) renderPortionPad(); });
+
+  $('#search-results').addEventListener('click', (e) => {
+    const f = e.target.closest('[data-pick-food]');
+    const r = e.target.closest('[data-pick-recipe]');
+    if (f) openPortionPad('food', f.dataset.pickFood);
+    if (r) openPortionPad('recipe', r.dataset.pickRecipe);
+  });
+
+  $('#portion-pad').addEventListener('click', (e) => {
+    const m = e.target.closest('[data-measure]');
+    const k = e.target.closest('[data-size]');
+    const q = e.target.closest('[data-qty]');
+    if (m) { pending.measureId = m.dataset.measure; pending.qty = 1; renderPortionPad(); }
+    if (k) { pending.katoriSize = k.dataset.size; renderPortionPad(); }
+    if (q) {
+      const step = Number(q.dataset.qty);
+      pending.qty = Math.max(step > 0 ? 0.25 : 0.25, Math.round((pending.qty + step) * 100) / 100);
+      renderPortionPad();
+    }
+    if (e.target.id === 'pp-save') savePending();
+  });
+  $('#portion-pad').addEventListener('input', (e) => {
+    if (e.target.id === 'pp-qty') {
+      pending.qty = Math.max(0.25, Number(e.target.value) || 1);
+      const pos = e.target.selectionStart;
+      renderPortionPad();
+      const next = $('#pp-qty');
+      if (next) { next.focus(); try { next.setSelectionRange(pos, pos); } catch {} }
+    }
+  });
+
+  $('#log-list').addEventListener('click', (e) => {
+    const del = e.target.closest('[data-del]');
+    if (del) { store.removeEntry(viewDate, del.dataset.del); renderToday(); }
+  });
+
+  $('.plate-shortcuts').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-plate]');
+    if (b) logPlate(b.dataset.plate);
+  });
+
+  $('#btn-regen').onclick = () => { buildPlan(); renderPlan(); toast('Rebuilt this week'); };
+
+  $('#plan-tabs').addEventListener('click', (e) => {
+    const t = e.target.closest('[data-day]');
+    if (!t) return;
+    planTabDay = Number(t.dataset.day);
+    $$('#plan-tabs .tab').forEach((b) => b.setAttribute('aria-selected', b === t));
+    renderPlanDay(store.state.plan, planTabDay);
+  });
+
+  $('#plan-day').addEventListener('click', (e) => {
+    const cook = e.target.closest('[data-cook]');
+    const logp = e.target.closest('[data-logplan]');
+    const dis = e.target.closest('[data-dislike]');
+    if (cook) {
+      show('cook');
+      $('#recipe-search').value = db.recipesById[cook.dataset.cook]?.name ?? '';
+      renderCook();
+      const d = $(`[data-recipe="${cook.dataset.cook}"]`);
+      if (d) { d.open = true; renderRecipeBody(cook.dataset.cook, 1); d.scrollIntoView({ block: 'center' }); }
+    }
+    if (logp) {
+      const [idx, meal] = logp.dataset.logplan.split(':');
+      const m = store.state.plan.days[Number(idx)].meals.find((x) => x.meal === meal);
+      if (m) {
+        store.addEntry(today(), {
+          kind: 'recipe', recipeId: m.recipeId, servings: m.servings, meal,
+          label: m.name, portionLabel: `${m.servings} serving${m.servings === 1 ? '' : 's'}`,
+        });
+        toast(`${m.name} logged to today`);
+      }
+    }
+    if (dis) {
+      store.toggleDislike(dis.dataset.dislike);
+      buildPlan();
+      renderPlan();
+      toast('Rebuilt without it');
+    }
+  });
+
+  $('#shopping').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-price]');
+    if (!b) return;
+    const id = b.dataset.price;
+    const food = db.foodsById[id];
+    const current = Math.round(pricePerKg(db, id, monthKey(), store.state.priceOverrides));
+    const answer = prompt(`What does ${food.name} actually cost you, in ₹ per kg?`, current);
+    if (answer === null) return;
+    const val = Number(answer);
+    if (!Number.isFinite(val) || val <= 0) return toast('Needs a number in rupees per kg');
+    store.setPrice(id, val);
+    buildPlan();
+    renderPlan();
+    toast(`${food.name} set to ₹${val}/kg`);
+  });
+
+  $('#btn-copy-list').onclick = async () => {
+    const plan = store.state.plan;
+    if (!plan?.days) return;
+    const list = shoppingList(db, plan, {
+      household: store.state.profile.household ?? 1,
+      month: plan.month,
+      priceOverrides: store.state.priceOverrides,
+    });
+    const text = list.items.map((i) => `${i.name} — ${i.buyLabel} (₹${i.cost})`).join('\n') +
+      `\n\nTotal ₹${list.total}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      toast('Shopping list copied');
+    } catch {
+      toast('Copy failed — long-press the list to select it instead');
+    }
+  };
+
+  $('#recipe-search').addEventListener('input', renderCook);
+  $('#recipe-sort').addEventListener('change', renderCook);
+  $('#recipe-list').addEventListener('toggle', (e) => {
+    const d = e.target.closest('details[data-recipe]');
+    if (d?.open) renderRecipeBody(d.dataset.recipe, store.state.profile.household ?? 1);
+  }, true);
+  $('#recipe-list').addEventListener('input', (e) => {
+    const s = e.target.closest('[data-scale]');
+    if (s) renderRecipeBody(s.dataset.scale, Math.max(1, Math.min(6, Number(s.value) || 1)));
+  });
+  $('#recipe-list').addEventListener('click', (e) => {
+    const lr = e.target.closest('[data-logrecipe]');
+    const dis = e.target.closest('[data-dislike]');
+    if (lr) {
+      const r = db.recipesById[lr.dataset.logrecipe];
+      store.addEntry(today(), {
+        kind: 'recipe', recipeId: r.id, servings: 1, meal: 'lunch',
+        label: r.name, portionLabel: '1 serving',
+      });
+      toast(`${r.name} logged`);
+    }
+    if (dis) {
+      store.toggleDislike(dis.dataset.dislike);
+      store.update({ plan: null });
+      renderCook();
+      toast('Plans updated');
+    }
+  });
+
+  $('#weight-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const kg = Number(new FormData(e.target).get('kg'));
+    if (!kg) return;
+    store.addWeight(today(), kg);
+    store.update({ profile: { ...store.state.profile, weightKg: kg } });
+    e.target.reset();
+    renderYou();
+    toast('Weigh-in added');
+  });
+
+  $('#katori-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const ml = Number(new FormData(e.target).get('ml'));
+    if (!ml) return;
+    store.update({ katoriMl: ml, plan: null });
+    renderYou();
+    toast(`Katori set to ${ml} ml`);
+  });
+
+  $('#btn-export').onclick = () => {
+    const blob = new Blob([store.export()], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `victu-backup-${today()}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  $('#import-file').addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      store.import(await file.text());
+      toast('Backup restored');
+      show('today');
+    } catch (err) {
+      toast(err.message);
+    }
+    e.target.value = '';
+  });
+
+  $('#btn-reset').onclick = () => {
+    if (!confirm('This erases your profile, every logged meal and every weigh-in on this device. There is no undo.')) return;
+    store.reset();
+    location.reload();
+  };
+
+  // --- food filter tabs ---
+  $('#food-filter').addEventListener('click', (e) => {
+    const t = e.target.closest('[data-filter]');
+    if (!t) return;
+    $$('#food-filter .tab').forEach((b) => b.setAttribute('aria-selected', b === t));
+    $('#search-results').hidden = false;
+    $('#portion-pad').hidden = true;
+    pending = null;
+    renderResults($('#food-search').value);
+  });
+
+  // --- scanning ---
+  $('#btn-scan').onclick = openScanPane;
+  $('#btn-scan-cancel').onclick = closeScanPane;
+  $('#scan-manual').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const code = new FormData(e.target).get('code');
+    if (code) handleBarcode(String(code).trim());
+  });
+
+  // --- day repair ---
+  $('#btn-fix-day').onclick = () => {
+    const box = $('#repair');
+    if (!store.entriesFor(viewDate).length) return toast('Log what you have eaten first');
+    renderRepair();
+    box.hidden = false;
+    box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  // --- kitchen ---
+  $('#kitchen-mode').addEventListener('change', renderKitchen);
+  $('#pantry-add').addEventListener('submit', (e) => e.preventDefault());
+  $('#pantry-search').addEventListener('input', (e) => renderPantrySearch(e.target.value));
+  $('#pantry-results').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-padd]');
+    if (!b) return;
+    const f = db.foodsById[b.dataset.padd];
+    store.setPantry(b.dataset.padd, null);
+    $('#pantry-search').value = '';
+    $('#pantry-results').innerHTML = '';
+    renderKitchen();
+    toast(`${f?.name ?? 'Added'} added`);
+    $('#pantry-search').focus();
+  });
+  $('#pantry-list').addEventListener('click', (e) => {
+    const rm = e.target.closest('[data-prm]');
+    if (rm) { store.removePantry(rm.dataset.prm); renderKitchen(); return; }
+
+    const mode = e.target.closest('[data-pmode]');
+    if (mode) {
+      const [id, want] = mode.dataset.pmode.split(':');
+      const held = store.state.pantry[id];
+      if (want === 'always') {
+        if (held?.haveG != null) { store.setPantry(id, null); renderKitchen(); }
+      } else if (held?.haveG == null) {
+        store.setPantry(id, 500);
+        renderKitchen();
+      }
+      return;
+    }
+
+    const step = e.target.closest('[data-pstep]');
+    if (step) {
+      const [id, deltaStr] = step.dataset.pstep.split(':');
+      const held = store.state.pantry[id];
+      const base = held?.haveG ?? 0;
+      const next = Math.max(0, base + Number(deltaStr));
+      store.setPantry(id, next);
+      renderKitchen();
+    }
+  });
+  $('#pantry-list').addEventListener('change', (e) => {
+    const q = e.target.closest('[data-pq]');
+    if (!q) return;
+    const v = q.value.trim();
+    store.setPantry(q.dataset.pq, v === '' ? null : Math.max(0, Number(v) || 0));
+    renderKitchen();
+  });
+  $('#cook-now-list').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-cooknow]');
+    if (!b) return;
+    show('cook');
+    $('#recipe-search').value = db.recipesById[b.dataset.cooknow]?.name ?? '';
+    renderCook();
+    const d = $(`[data-recipe="${b.dataset.cooknow}"]`);
+    if (d) { d.open = true; renderRecipeBody(b.dataset.cooknow, 1); d.scrollIntoView({ block: 'center' }); }
+  });
+
+  // --- mark shopping bought ---
+  $('#btn-bought').onclick = () => {
+    const plan = store.state.plan;
+    if (!plan?.days) return;
+    const list = shoppingList(db, plan, {
+      household: store.state.profile.household ?? 1,
+      month: plan.month,
+      priceOverrides: store.state.priceOverrides,
+    });
+    store.stockFromShopping(list.items);
+    toast('Added to your kitchen');
+    renderPlan();
+  };
+
+  $('#btn-edit-profile').onclick = () => {
+    const p = store.state.profile;
+    const f = $('#setup-form');
+    for (const [k, v] of Object.entries(p)) {
+      const el = f.elements[k];
+      if (!el) continue;
+      if (el instanceof RadioNodeList) [...el].forEach((r) => (r.checked = r.value === v));
+      else el.value = v;
+    }
+    show('setup');
+    updateSetupPreview();
+  };
+}
+
+/** Name, Hindi, brand or alias - so "capsicum" finds Shimla mirch. */
+function matchesFood(f, term) {
+  if (!term) return true;
+  return f.name.toLowerCase().includes(term) ||
+         (f.hi ?? '').includes(term) ||
+         (f.alias ?? '').toLowerCase().includes(term) ||
+         (f.brand ?? '').toLowerCase().includes(term);
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+boot();
