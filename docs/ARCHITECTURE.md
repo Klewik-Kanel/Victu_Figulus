@@ -317,6 +317,41 @@ two-thirds of a plate" is actionable. A test asserts it never moralises — an
 app that makes you feel bad about chole bhature is an app you stop opening,
 and an unlogged day is worse than an expensive one.
 
+## v4: salads, and getting the purple out
+
+### Salads are sides, not slots
+
+Ten Indian salads, tagged `salad`. The interesting part is how they enter the
+plan. Giving them their own meal slot would have meant a fifth katori on the
+thali and a salad competing with dinner; filtering them out of the main pools
+and attaching one per day to whichever big meal exists keeps the four slots
+intact and matches how anyone actually eats. Seven percent of the day's
+calories is held back from the three main meals to pay for it.
+
+Two rules are tested: a salad never stands in for a main dish, and the same
+one never appears two days running.
+
+Adding them exposed a scoring flaw in `repairDay()`. Salads are protein-*dense*
+per calorie, so after a protein-free lunch a 15 g salad was outscoring a 35 g
+soya keema for dinner. But the gap to close after junk is absolute, not
+proportional. The scorer now carries two protein terms — density, and how much
+of the actual shortfall a dish closes — and the second one settles it.
+
+### Getting the purple out
+
+The v2 ground was deep aubergine. It was a deliberate move away from the
+cream-and-terracotta that every food app lands on, but it tinted every surface
+purple, which reads as a theme rather than as a background. Both grounds are
+now warm neutrals — near-white at #F6F6F4, charcoal at #171614 — and all the
+colour lives in the drawings and the three data accents, which was the
+intention all along.
+
+The theme is also no longer at the mercy of the operating system. `theme` is
+stored as light, dark or match-device, defaults to **light**, and is applied
+before first paint so there is no flash of the wrong one. A `:root[data-theme="light"]`
+block carries the full light palette so an explicit choice beats
+`prefers-color-scheme` rather than fighting it.
+
 ## Known weaknesses
 
 | What | Why it matters | Fix |

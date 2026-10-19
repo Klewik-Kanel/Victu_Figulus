@@ -92,6 +92,14 @@ sold in packs or sold loose, and the shopping list buys whole packs. The plan
 shows three numbers: what you hand over at the till, what gets eaten this
 week, and what stays in your cupboard for later.
 
+**A salad every day.** Ten of them, Indian ones — kachumber, koshimbir, mooli
+salad, sprouted moong — and the planner serves one alongside lunch or dinner
+rather than leaving them in a list nobody opens. Raw vegetables are the
+cheapest way to add volume and fibre to a deficit.
+
+**Light or dark, your choice.** Set in You, defaulting to light. The app does
+not follow your operating system unless you ask it to.
+
 **Grams or katoris, your choice.** Set it at sign-up and change it any time in
 You. On a kitchen scale everything leads with grams; without one you get
 household measures. Neither mode removes the other — a scale owner can still

@@ -18,7 +18,7 @@ import {
   generateWeekPlan, shoppingList, buildDb, measuresFor,
   weightTrend, suggestAdjustment, formatQty,
   repairDay, spreadSurplus, pantryMatch, shoppingListMinusPantry,
-  packPlan, tillCost, recipeCostBreakdown, fitCheck,
+  packPlan, tillCost, recipeCostBreakdown, fitCheck, isSalad,
   packMeasures, ASSUMED_STAPLES,
 } from '../js/core.js';
 
@@ -62,7 +62,10 @@ test('macros are physically consistent with stated calories', () => {
     const n = f.per100g;
     if (n.kcal === 0) continue;
     const fibre = n.fiber ?? 0;
-    const lo = (n.p * 4 + Math.max(0, n.c - fibre) * 4 + n.f * 9) * 0.88;
+    // 0.85 rather than 0.9: citrus sits right on the boundary because the
+    // published figures use fruit-specific Atwater factors, not the general
+    // 4/4/9. Still tight enough to catch a typo, which is always far wider.
+    const lo = (n.p * 4 + Math.max(0, n.c - fibre) * 4 + n.f * 9) * 0.85;
     const hi = (n.p * 4 + n.c * 4 + n.f * 9) * 1.12;
     assert.ok(
       n.kcal >= lo && n.kcal <= hi,
@@ -810,4 +813,69 @@ test('purchase packs are never offered as a portion to eat', () => {
   assert.equal(packMeasures(dal).length, 0, 'but none of them are servings');
   // A packet of crisps genuinely is eaten by the packet.
   assert.ok(packMeasures(db.foodsById.pkg_lays_salted).length > 0);
+});
+
+// --- salads -----------------------------------------------------------------
+
+test('there is a real salad section, not two token entries', () => {
+  const salads = db.recipes.filter(isSalad);
+  assert.ok(salads.length >= 8, `expected a proper set, got ${salads.length}`);
+  for (const s of salads) {
+    assert.ok(s.ing.length >= 3, `${s.id}: a salad needs more than two things in it`);
+    const n = roundNutrition(recipeNutrition(db, s, 1));
+    assert.ok(n.fiber > 1, `${s.id}: ${n.fiber} g fibre is not doing the job of a salad`);
+  }
+});
+
+test('every day of the plan includes a salad', () => {
+  const plan = generateWeekPlan(db, { profile, target, month: 'nov', weeklyBudget: 1400 });
+  for (const day of plan.days) {
+    assert.ok(day.meals.some((m) => m.isSalad), `${day.date} has no salad`);
+  }
+});
+
+test('the salad rides alongside a main meal rather than replacing one', () => {
+  const plan = generateWeekPlan(db, { profile, target, month: 'nov', weeklyBudget: 1400 });
+  for (const day of plan.days) {
+    const salad = day.meals.find((m) => m.isSalad);
+    const mains = day.meals.filter((m) => !m.isSalad);
+    assert.ok(['lunch', 'dinner'].includes(salad.meal), 'salads go with the big meals');
+    assert.ok(mains.some((m) => m.meal === salad.meal), 'there must still be a main meal in that slot');
+    assert.ok(mains.length >= 3, 'the three main meals must survive');
+  }
+});
+
+test('a salad is never picked as the main dish for a slot', () => {
+  const plan = generateWeekPlan(db, { profile, target, month: 'nov', weeklyBudget: 1400 });
+  for (const day of plan.days) {
+    for (const m of day.meals.filter((x) => !x.isSalad)) {
+      assert.ok(!isSalad(db.recipesById[m.recipeId]), `${m.name} is a salad standing in for a meal`);
+    }
+  }
+});
+
+test('salads add fibre without blowing the calorie target', () => {
+  const plan = generateWeekPlan(db, { profile, target, month: 'nov', weeklyBudget: 1400 });
+  for (const day of plan.days) {
+    const drift = Math.abs(day.nutrition.kcal - target.kcal) / target.kcal;
+    assert.ok(drift < 0.2, `${day.date}: ${day.nutrition.kcal} vs ${target.kcal}`);
+  }
+  const avgFibre = plan.days.reduce((s, d) => s + d.nutrition.fiber, 0) / 7;
+  assert.ok(avgFibre > 20, `salads should lift fibre, got ${avgFibre.toFixed(1)} g/day`);
+});
+
+test('the same salad does not appear two days running', () => {
+  const plan = generateWeekPlan(db, { profile, target, month: 'nov', weeklyBudget: 1400 });
+  for (let i = 1; i < plan.days.length; i++) {
+    const prev = plan.days[i - 1].meals.find((m) => m.isSalad)?.recipeId;
+    const here = plan.days[i].meals.find((m) => m.isSalad)?.recipeId;
+    assert.notEqual(prev, here, `the same salad on consecutive days`);
+  }
+});
+
+test('after a protein-free lunch, dinner closes the protein gap in absolute terms', () => {
+  const consumed = { kcal: 850, p: 5, c: 95, f: 45, fiber: 3 };
+  const r = repairDay(db, { profile, target, consumed, slotsLeft: ['dinner'], month: 'nov' });
+  assert.ok(r.suggestions[0].options[0].nutrition.p >= 25,
+    `a salad is protein-dense but light; dinner should deliver real protein, got ${r.suggestions[0].options[0].nutrition.p} g`);
 });

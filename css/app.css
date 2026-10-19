@@ -7,8 +7,12 @@
    around them stays quiet, so the food is the colourful thing and the chrome
    is not.
 
-   Ground is deep aubergine rather than the warm cream that every food app
-   reaches for. Turmeric is the only interactive accent.
+   Ground is a warm neutral - near-white in light, charcoal in dark - with no
+   colour cast of its own, so the drawings carry all the colour. An earlier
+   version used an aubergine ground; it tinted every screen purple, which read
+   as a theme rather than as a background. Turmeric is the only interactive
+   accent, and the theme is the user's explicit choice rather than whatever
+   their operating system happens to be set to.
 
    SPECIFICITY RULE (learned the hard way, twice, in v1): no bare element
    selector sets a layout property that a component might need to override.
@@ -19,14 +23,14 @@
   color-scheme: light dark;
 
   /* ink + ground */
-  --ground:      #F5F3F7;
+  --ground:      #F6F6F4;
   --surface:     #FFFFFF;
-  --surface-2:   #FAF8FC;
-  --ink:         #1F1828;
-  --ink-2:       #574B66;
-  --ink-3:       #8B7F9C;
-  --line:        #E4DFEA;
-  --line-2:      #D3CBDC;
+  --surface-2:   #FAFAF8;
+  --ink:         #221F1C;
+  --ink-2:       #57524B;
+  --ink-3:       #8A837A;
+  --line:        #E7E5E0;
+  --line-2:      #D5D2CB;
 
   /* spice */
   --turmeric:    #D9941A;
@@ -36,7 +40,7 @@
   --coriander:   #44784C;
   --coriander-2: #E3F0E4;
   --cumin:       #8A6A3E;
-  --aubergine:   #5B3C7E;
+  --link:        #8A5A12;
 
   /* illustration pigments */
   --ill-steel:     #C9CFD6;
@@ -86,14 +90,14 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --ground:    #171320;
-    --surface:   #211A2D;
-    --surface-2: #2A2238;
-    --ink:       #F2EDF7;
-    --ink-2:     #BDB0CC;
-    --ink-3:     #8C7F9C;
-    --line:      #332A42;
-    --line-2:    #443857;
+    --ground:    #171614;
+    --surface:   #211F1C;
+    --surface-2: #2A2724;
+    --ink:       #F4F2EE;
+    --ink-2:     #BFB8AE;
+    --ink-3:     #8E877D;
+    --line:      #322E29;
+    --line-2:    #433E37;
 
     --turmeric:    #F0B429;
     --turmeric-2:  #3A2D12;
@@ -102,7 +106,7 @@
     --coriander:   #7FBE88;
     --coriander-2: #1E2F21;
     --cumin:       #BE9460;
-    --aubergine:   #B48AE0;
+    --link:        #D6A445;
 
     --ill-steel:   #5A6470;
     --ill-steel-l: #76818E;
@@ -114,14 +118,27 @@
     --ill-can:     #717C87;
   }
 }
+:root[data-theme="light"] {
+  --ground: #F6F6F4; --surface: #FFFFFF; --surface-2: #FAFAF8;
+  --ink: #221F1C; --ink-2: #57524B; --ink-3: #8A837A;
+  --line: #E7E5E0; --line-2: #D5D2CB;
+  --turmeric: #D9941A; --turmeric-2: #FBF0DA;
+  --chilli: #C0362F; --chilli-2: #FAE6E4;
+  --coriander: #44784C; --coriander-2: #E3F0E4; --cumin: #8A6A3E;
+  --link: #8A5A12;
+  --ill-steel: #C9CFD6; --ill-steel-l: #E2E7EC; --ill-rice: #F3EEE4;
+  --ill-cream: #F7F2E8; --ill-glass: #DCE6EC; --ill-foil: #9AA4AE;
+  --ill-foil-l: #C4CCD3; --ill-can: #AEB7C0;
+}
+
 :root[data-theme="dark"] {
-  --ground: #171320; --surface: #211A2D; --surface-2: #2A2238;
-  --ink: #F2EDF7; --ink-2: #BDB0CC; --ink-3: #8C7F9C;
-  --line: #332A42; --line-2: #443857;
+  --ground: #171614; --surface: #211F1C; --surface-2: #2A2724;
+  --ink: #F4F2EE; --ink-2: #BFB8AE; --ink-3: #8E877D;
+  --line: #322E29; --line-2: #433E37;
   --turmeric: #F0B429; --turmeric-2: #3A2D12;
   --chilli: #E8756C; --chilli-2: #3D211F;
   --coriander: #7FBE88; --coriander-2: #1E2F21; --cumin: #BE9460;
-  --aubergine: #B48AE0;
+  --link: #D6A445;
   --ill-steel: #5A6470; --ill-steel-l: #76818E; --ill-rice: #E8E2D6;
   --ill-cream: #EAE3D6; --ill-glass: #44505A; --ill-foil: #6B7682;
   --ill-foil-l: #8C97A3; --ill-can: #717C87;
@@ -309,7 +326,7 @@ h3 { font-size: 1.05rem; }
   font-size: 1rem;
 }
 
-.link { background: none; border: 0; padding: 0; font: inherit; font-size: .83rem; color: var(--aubergine); cursor: pointer; }
+.link { background: none; border: 0; padding: 0; font: inherit; font-size: .83rem; color: var(--link); cursor: pointer; }
 .link:hover { text-decoration: underline; }
 
 .fab {
@@ -318,7 +335,7 @@ h3 { font-size: 1.05rem; }
   z-index: 40;
   padding: 14px 30px; border-radius: var(--r-pill);
   font-size: .98rem; font-weight: 600;
-  box-shadow: 0 8px 24px rgba(31, 24, 40, .28);
+  box-shadow: 0 8px 24px rgba(34, 31, 28, .26);
   border: 0; background: var(--turmeric); color: #241A05;
   font-family: var(--ui); cursor: pointer;
 }
@@ -631,7 +648,7 @@ input.pi-qty { -moz-appearance: textfield; appearance: textfield; }
   background: var(--ink); color: var(--ground);
   padding: 11px 18px; border-radius: var(--r-pill);
   font-size: .86rem; max-width: 86vw; text-align: center;
-  box-shadow: 0 6px 20px rgba(31, 24, 40, .25);
+  box-shadow: 0 6px 20px rgba(34, 31, 28, .24);
 }
 
 
@@ -686,3 +703,6 @@ input.pi-qty { -moz-appearance: textfield; appearance: textfield; }
 .fit.is-over { background: var(--chilli-2); }
 .fit-msg { margin: 0 0 6px; font-size: .88rem; line-height: 1.5; }
 .fit-figs { margin: 0 0 10px; font-size: .78rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+.r-tag.is-salad { background: var(--coriander-2); color: var(--coriander); border-color: transparent; }
+#recipe-kind { margin: 0 0 4px; }

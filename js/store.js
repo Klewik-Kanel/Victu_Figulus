@@ -18,6 +18,7 @@ const BLANK = {
   dislikes: [],
   pantry: {},         // foodId -> { haveG: number|null, updatedAt }  (null = "always have")
   scanned: [],        // foods pulled from Open Food Facts, cached forever
+  theme: 'light',     // 'light' | 'dark' | 'system' - the user's choice, not the OS's
   plan: null,         // last generated week
   targetNudge: 0,     // kcal, from weekly reviews
 };

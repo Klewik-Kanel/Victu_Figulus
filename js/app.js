@@ -10,7 +10,7 @@ import {
   generateWeekPlan, shoppingList, measuresFor,
   weightTrend, suggestAdjustment, formatQty,
   repairDay, spreadSurplus, pantryMatch, shoppingListMinusPantry, ASSUMED_STAPLES,
-  packPlan, recipeCostBreakdown, fitCheck,
+  packPlan, recipeCostBreakdown, fitCheck, isSalad,
 } from './core.js';
 import { store, today, shiftDate } from './store.js';
 import { lookupBarcode, canScan, scanFromCamera } from './lookup.js';
@@ -36,6 +36,7 @@ const ICON_RULES = [
   // packet of crisps was drawn as a bowl of curd.
   [/\b(curd|dahi|milk|lassi|chaas|buttermilk|yoghurt|yogurt)\b/i, 'i-curd'],
   [/\b(chai|tea|coffee)\b/i, 'i-chai'],
+  [/salad|kachumber|koshimbir|slaw|raita/i, 'i-greens'],
   [/palak|methi|sarson|saag|spinach|greens|coriander|cabbage|lettuce/i, 'i-greens'],
   // Street and restaurant food before the grain rules, or "pani puri" becomes a roti.
   // "chaat" is a form, not a dish - it was hijacking corn chaat and rajma salad.
@@ -94,7 +95,23 @@ const MEAL_COLOUR = {
 // Boot
 // ---------------------------------------------------------------------------
 
+/**
+ * The theme is the user's choice, not their operating system's. Applied before
+ * anything renders so there is no flash of the wrong one.
+ */
+function applyTheme() {
+  const t = store.state.theme ?? 'light';
+  const el = document.documentElement;
+  if (t === 'system') el.removeAttribute('data-theme');
+  else el.setAttribute('data-theme', t);
+
+  const meta = document.querySelector('meta[name="theme-color"]:not([media])')
+    ?? document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', t === 'dark' ? '#171614' : '#F6F6F4');
+}
+
 async function boot() {
+  applyTheme();
   try {
     const [foods, portions, seasonality, recipes, packaged] = await Promise.all(
       ['foods', 'portions', 'seasonality', 'recipes', 'packaged'].map((n) =>
@@ -786,8 +803,13 @@ function renderPlanDay(plan, idx) {
   if (!day) return;
   const t = currentTarget();
 
+  // A salad belongs beside the meal it accompanies, not after the snack.
+  const order = { breakfast: 0, lunch: 1, dinner: 2, snack: 3 };
+  const ordered = [...day.meals].sort((a, b) =>
+    (order[a.meal] - order[b.meal]) || (a.isSalad ? 1 : 0) - (b.isSalad ? 1 : 0));
+
   $('#plan-day').innerHTML = `
-    ${day.meals.map((m) => {
+    ${ordered.map((m) => {
       const r = db.recipesById[m.recipeId];
       const withTxt = (m.serveWith ?? []).map((s) => {
         const [mid, q] = s.split(':');
@@ -798,7 +820,7 @@ function renderPlanDay(plan, idx) {
       return `<div class="pd-meal">
         ${icon(iconFor(m.name))}
         <div class="pd-body">
-          <span class="pd-slot">${MEAL_LABEL[m.meal]}</span>
+          <span class="pd-slot">${m.isSalad ? `with ${MEAL_LABEL[m.meal].toLowerCase()}` : MEAL_LABEL[m.meal]}</span>
           <span class="pd-name">${escapeHtml(m.name)}</span>
           <span class="pd-figs">${m.nutrition.kcal} kcal, ${m.nutrition.p} g protein, ₹${m.cost}</span>
         ${withTxt ? `<p class="pd-with">with ${escapeHtml(withTxt)}</p>` : ''}
@@ -832,7 +854,11 @@ function renderCook() {
   const p = store.state.profile;
   const ov = store.state.priceOverrides;
 
+  const kind = $('#recipe-kind .tab[aria-selected="true"]')?.dataset.kind ?? 'all';
+
   let list = db.recipes.filter((r) => {
+    if (kind === 'salad' && !isSalad(r)) return false;
+    if (kind === 'main' && isSalad(r)) return false;
     if (term && !r.name.toLowerCase().includes(term)) return false;
     if (p.diet === 'veg' && !r.veg) return false;
     if (p.diet === 'egg' && !r.veg && r.id !== 'egg_bhurji') return false;
@@ -866,6 +892,7 @@ function renderCook() {
           <span class="r-name">${escapeHtml(r.name)}
             <span class="r-tags">
               ${tag}
+              ${isSalad(r) ? '<span class="r-tag is-salad">salad</span>' : ''}
               <span class="r-tag">${r.timeMin} min</span>
               <span class="r-tag">₹${pv.toFixed(2)}/g protein</span>
               ${disliked ? '<span class="r-tag is-off">hidden from plans</span>' : ''}
@@ -945,6 +972,9 @@ function renderYou() {
       toast('Target adjusted');
     };
   }
+
+  const th = store.state.theme ?? 'light';
+  $$('#theme-toggle input').forEach((r) => (r.checked = r.value === th));
 
   const u = units();
   $$('#units-toggle input').forEach((r) => (r.checked = r.value === u));
@@ -1534,6 +1564,12 @@ function wireEvents() {
 
   $('#recipe-search').addEventListener('input', renderCook);
   $('#recipe-sort').addEventListener('change', renderCook);
+  $('#recipe-kind').addEventListener('click', (e) => {
+    const t = e.target.closest('[data-kind]');
+    if (!t) return;
+    $$('#recipe-kind .tab').forEach((b) => b.setAttribute('aria-selected', b === t));
+    renderCook();
+  });
   $('#recipe-list').addEventListener('toggle', (e) => {
     const d = e.target.closest('details[data-recipe]');
     if (d?.open) renderRecipeBody(d.dataset.recipe, store.state.profile.household ?? 1);
@@ -1751,6 +1787,11 @@ function wireEvents() {
     toast('Added to your kitchen');
     renderPlan();
   };
+
+  $('#theme-toggle').addEventListener('change', (e) => {
+    store.update({ theme: e.target.value });
+    applyTheme();
+  });
 
   $('#units-toggle').addEventListener('change', (e) => {
     const v = e.target.value;

@@ -195,6 +195,13 @@
   <h3 class="section-head">Weekly review</h3>
   <div id="review" class="callout"></div>
 
+  <h3 class="section-head">Appearance</h3>
+  <div class="seg seg-wide" id="theme-toggle" role="radiogroup" aria-label="Appearance">
+    <label><input type="radio" name="theme" value="light"><span>Light</span></label>
+    <label><input type="radio" name="theme" value="dark"><span>Dark</span></label>
+    <label><input type="radio" name="theme" value="system"><span>Match device</span></label>
+  </div>
+
   <h3 class="section-head">How you measure</h3>
   <div class="seg seg-wide" id="units-toggle" role="radiogroup" aria-label="How you measure food">
     <label><input type="radio" name="units2" value="katori"><span>By katori</span></label>
@@ -251,8 +258,13 @@
       <input type="search" id="recipe-search" placeholder="Search recipes" aria-label="Search recipes">
       <div class="seg seg-wide" id="recipe-sort" role="radiogroup" aria-label="Sort recipes">
         <label><input type="radio" name="rsort" value="season" checked><span>In season</span></label>
-        <label><input type="radio" name="rsort" value="protein"><span>Protein value</span></label>
+        <label><input type="radio" name="rsort" value="protein"><span>Protein</span></label>
         <label><input type="radio" name="rsort" value="cost"><span>Cheapest</span></label>
+      </div>
+      <div class="tabs" id="recipe-kind" role="tablist">
+        <button class="tab" role="tab" aria-selected="true" data-kind="all">Everything</button>
+        <button class="tab" role="tab" aria-selected="false" data-kind="salad">Salads</button>
+        <button class="tab" role="tab" aria-selected="false" data-kind="main">Mains</button>
       </div>
     </div>
     <ul id="recipe-list" class="recipe-list"></ul>

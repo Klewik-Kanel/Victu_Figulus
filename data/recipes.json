@@ -941,6 +941,231 @@
       "notes": "Ordinary poha with the protein roughly doubled for about four rupees more."
     },
     {
+      "id": "kachumber",
+      "name": "Kachumber",
+      "veg": true,
+      "tags": ["salad"],
+      "meals": ["lunch","dinner","snack"],
+      "seasons": ["all"],
+      "effort": "low",
+      "timeMin": 8,
+      "ing": [
+        { "food": "cucumber", "g": 100 },
+        { "food": "tomato", "g": 60 },
+        { "food": "onion", "g": 30 },
+        { "food": "coriander", "g": 8 },
+        { "food": "lemon", "g": 10 }
+      ],
+      "steps": [
+        "Dice everything to the same small size - kachumber is about texture, and uneven pieces make it a chopped salad instead.",
+        "Salt only at the table. Salt early and the cucumber weeps into a puddle.",
+        "Lemon, black salt, roasted jeera powder, coriander."
+      ],
+      "notes": "Forty calories for a bowl that fills a quarter of the plate. The cheapest way to make a small dinner feel like a meal."
+    },
+    {
+      "id": "sprout_salad",
+      "name": "Sprouted moong salad",
+      "veg": true,
+      "tags": ["salad"],
+      "meals": ["lunch","dinner","snack","breakfast"],
+      "seasons": ["all"],
+      "effort": "low",
+      "timeMin": 10,
+      "ing": [
+        { "food": "sprouts_mix", "g": 80 },
+        { "food": "cucumber", "g": 60 },
+        { "food": "tomato", "g": 40 },
+        { "food": "onion", "g": 20 },
+        { "food": "lemon", "g": 10 }
+      ],
+      "steps": [
+        "Steam the sprouts three minutes if you prefer them soft; raw is fine and keeps more of the vitamin C.",
+        "Toss with the chopped vegetables, chaat masala and lemon.",
+        "Eat it soon after dressing - it goes watery if it sits."
+      ],
+      "notes": "Nearly 9 g of protein in a salad, which almost no salad manages."
+    },
+    {
+      "id": "chana_salad",
+      "name": "Kala chana salad",
+      "veg": true,
+      "tags": ["salad"],
+      "meals": ["lunch","snack"],
+      "seasons": ["all"],
+      "effort": "low",
+      "timeMin": 12,
+      "ing": [
+        { "food": "kala_chana", "g": 45 },
+        { "food": "cucumber", "g": 60 },
+        { "food": "tomato", "g": 40 },
+        { "food": "onion", "g": 20 },
+        { "food": "coriander", "g": 8 },
+        { "food": "lemon", "g": 10 }
+      ],
+      "steps": [
+        "Use chana boiled in an earlier batch - this is a leftovers recipe by design.",
+        "Toss everything with chaat masala, black salt and plenty of lemon.",
+        "A spoon of curd folded through turns it into a light lunch."
+      ]
+    },
+    {
+      "id": "koshimbir",
+      "name": "Cucumber peanut koshimbir",
+      "veg": true,
+      "tags": ["salad"],
+      "meals": ["lunch","dinner"],
+      "seasons": ["summer"],
+      "effort": "low",
+      "timeMin": 10,
+      "ing": [
+        { "food": "cucumber", "g": 120 },
+        { "food": "peanuts", "g": 15 },
+        { "food": "curd", "g": 40 },
+        { "food": "coriander", "g": 6 },
+        { "food": "green_chilli", "g": 3 }
+      ],
+      "steps": [
+        "Coarsely crush roasted peanuts - powder makes it pasty.",
+        "Mix with diced cucumber, a little curd, green chilli and coriander.",
+        "Sugar and salt to balance, and a mustard-seed tadka if you have two minutes."
+      ],
+      "notes": "The Maharashtrian answer to raita. Better with the peanuts crushed, not blended."
+    },
+    {
+      "id": "beetroot_carrot_salad",
+      "name": "Beetroot and carrot salad",
+      "veg": true,
+      "tags": ["salad"],
+      "meals": ["lunch","dinner"],
+      "seasons": ["winter"],
+      "effort": "low",
+      "timeMin": 10,
+      "ing": [
+        { "food": "beetroot", "g": 80 },
+        { "food": "carrot", "g": 80 },
+        { "food": "peanuts", "g": 10 },
+        { "food": "lemon", "g": 10 },
+        { "food": "coriander", "g": 6 }
+      ],
+      "steps": [
+        "Grate both coarsely. Fine grating turns it to pulp and bleeds the colour everywhere.",
+        "Dress with lemon, salt, pepper and crushed peanuts.",
+        "Dress it just before eating, or the beetroot stains the carrot pink."
+      ]
+    },
+    {
+      "id": "cabbage_slaw",
+      "name": "Cabbage and carrot slaw",
+      "veg": true,
+      "tags": ["salad"],
+      "meals": ["lunch","dinner"],
+      "seasons": ["winter"],
+      "effort": "low",
+      "timeMin": 10,
+      "ing": [
+        { "food": "cabbage", "g": 120 },
+        { "food": "carrot", "g": 50 },
+        { "food": "curd", "g": 40 },
+        { "food": "lemon", "g": 8 },
+        { "food": "green_chilli", "g": 3 }
+      ],
+      "steps": [
+        "Shred the cabbage as thin as you can manage.",
+        "Dress with whisked curd rather than mayonnaise - a third of the calories and more protein.",
+        "Mustard seeds and curry leaves in a teaspoon of oil, poured over."
+      ]
+    },
+    {
+      "id": "paneer_salad",
+      "name": "Paneer and greens salad",
+      "veg": true,
+      "tags": ["salad"],
+      "meals": ["lunch","dinner"],
+      "seasons": ["winter"],
+      "effort": "low",
+      "timeMin": 15,
+      "ing": [
+        { "food": "paneer", "g": 70 },
+        { "food": "lettuce", "g": 60 },
+        { "food": "cucumber", "g": 50 },
+        { "food": "tomato", "g": 40 },
+        { "food": "mustard_oil", "g": 4 },
+        { "food": "lemon", "g": 10 }
+      ],
+      "steps": [
+        "Pan-sear the paneer cubes hard on two sides so they are brown, not rubbery.",
+        "Toss the leaves and vegetables with lemon, oil, salt and pepper.",
+        "Paneer on top while still warm."
+      ],
+      "notes": "A salad that actually works as dinner - around 15 g of protein."
+    },
+    {
+      "id": "corn_rajma_salad",
+      "name": "Corn and rajma salad",
+      "veg": true,
+      "tags": ["salad"],
+      "meals": ["lunch","snack"],
+      "seasons": ["all"],
+      "effort": "low",
+      "timeMin": 12,
+      "ing": [
+        { "food": "sweet_corn", "g": 80 },
+        { "food": "rajma", "g": 35 },
+        { "food": "capsicum", "g": 40 },
+        { "food": "onion", "g": 20 },
+        { "food": "lemon", "g": 10 }
+      ],
+      "steps": [
+        "Boiled rajma from an earlier batch, steamed corn, raw capsicum for crunch.",
+        "Lemon, olive or mustard oil, salt, chilli flakes.",
+        "Better after ten minutes in the fridge."
+      ]
+    },
+    {
+      "id": "mooli_salad",
+      "name": "Mooli and carrot salad",
+      "veg": true,
+      "tags": ["salad"],
+      "meals": ["lunch","dinner"],
+      "seasons": ["winter"],
+      "effort": "low",
+      "timeMin": 7,
+      "ing": [
+        { "food": "radish", "g": 100 },
+        { "food": "carrot", "g": 60 },
+        { "food": "lemon", "g": 10 },
+        { "food": "coriander", "g": 6 }
+      ],
+      "steps": [
+        "Slice the mooli thin rather than grating - it keeps its bite.",
+        "Salt, lemon, black pepper and plenty of coriander.",
+        "The classic winter accompaniment to a dal-roti dinner, and almost no calories."
+      ]
+    },
+    {
+      "id": "fruit_chaat",
+      "name": "Fruit chaat",
+      "veg": true,
+      "tags": ["salad"],
+      "meals": ["snack","breakfast"],
+      "seasons": ["all"],
+      "effort": "low",
+      "timeMin": 8,
+      "ing": [
+        { "food": "papaya", "g": 100 },
+        { "food": "banana", "g": 60 },
+        { "food": "guava", "g": 70 },
+        { "food": "pomegranate", "g": 40 },
+        { "food": "lemon", "g": 8 }
+      ],
+      "steps": [
+        "Cut everything to a similar size and add the banana last so it does not break down.",
+        "Chaat masala, black salt and lemon - not sugar.",
+        "A pinch of salt makes the fruit taste sweeter, which is the whole trick."
+      ]
+    },
+    {
       "id": "egg_bhurji",
       "name": "Egg bhurji",
       "veg": false,

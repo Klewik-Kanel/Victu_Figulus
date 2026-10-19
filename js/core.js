@@ -277,11 +277,18 @@ export function proteinValue(db, recipe, month = monthKey(), overrides = {}) {
 // ---------------------------------------------------------------------------
 
 const SLOTS = [
-  { meal: 'breakfast', share: 0.25 },
-  { meal: 'lunch',     share: 0.35 },
-  { meal: 'dinner',    share: 0.30 },
-  { meal: 'snack',     share: 0.10 },
+  { meal: 'breakfast', share: 0.23 },
+  { meal: 'lunch',     share: 0.33 },
+  { meal: 'dinner',    share: 0.28 },
+  { meal: 'snack',     share: 0.09 },
 ];
+
+/** Room held back for a daily salad, taken off the three main meals. */
+const SALAD_SHARE = 0.07;
+
+export function isSalad(recipe) {
+  return (recipe.tags ?? []).includes('salad');
+}
 
 function seasonOf(month) {
   if (['nov','dec','jan','feb'].includes(month)) return 'winter';
@@ -389,7 +396,7 @@ function buildWeek({ db, pool, target, month, household, priceOverrides, katoriS
 
     for (const slot of SLOTS) {
       const slotKcal = target.kcal * slot.share;
-      const all = pool.filter((r) => r.meals.includes(slot.meal));
+      const all = pool.filter((r) => r.meals.includes(slot.meal) && !isSalad(r));
       if (!all.length) continue;
 
       // Hard block on anything eaten today or yesterday. A soft penalty is not
@@ -450,6 +457,48 @@ function buildWeek({ db, pool, target, month, household, priceOverrides, katoriS
         cost: Math.round(best.cost),
         serveWith: best.recipe.serveWith ?? [],
       });
+    }
+
+    // A salad every day, attached to whichever main meal is larger. Raw veg is
+    // the cheapest way to add volume and fibre to a deficit, and a plan that
+    // never suggests one is a plan nobody's mother would recognise.
+    const saladPool = pool.filter(isSalad);
+    if (saladPool.length) {
+      const saladKcal = target.kcal * SALAD_SHARE;
+      let bestSalad = null;
+      for (const r of saladPool) {
+        const lastUsed = used.get(r.id);
+        if (lastUsed != null && d - lastUsed < 3) continue;
+        const per1 = recipeNutrition(db, r, 1);
+        if (per1.kcal <= 0) continue;
+        const servings = clamp(saladKcal / per1.kcal, 0.5, 1.5);
+        const n = scaleNutrition(per1, servings);
+        const cost = recipeCost(db, r, servings, month, priceOverrides) * household;
+        const seasonFit = recipeSeasonFit(db, r, month);
+        const score = (n.fiber / Math.max(1, n.kcal)) * 900 +
+                      (n.p / Math.max(1, n.kcal)) * 120 +
+                      seasonFit * 2 -
+                      (cost / household / 40) * costWeight;
+        if (!bestSalad || score > bestSalad.score) {
+          bestSalad = { recipe: r, servings, nutrition: n, cost, score };
+        }
+      }
+      if (bestSalad) {
+        used.set(bestSalad.recipe.id, d);
+        const withMeal = meals.find((m) => m.meal === 'dinner') ? 'dinner' : 'lunch';
+        dayNutrition = addNutrition(dayNutrition, bestSalad.nutrition);
+        dayCost += bestSalad.cost;
+        meals.push({
+          meal: withMeal,
+          isSalad: true,
+          recipeId: bestSalad.recipe.id,
+          name: bestSalad.recipe.name,
+          servings: Number(bestSalad.servings.toFixed(2)),
+          nutrition: roundNutrition(bestSalad.nutrition),
+          cost: Math.round(bestSalad.cost),
+          serveWith: [],
+        });
+      }
     }
 
     totalCost += dayCost;
@@ -926,6 +975,8 @@ export function repairDay(db, opts) {
 
   for (const slot of slotsLeft) {
     const slotKcal = kcalLeft / slotsLeft.length;
+    // When there is barely any room left, salads are exactly the right answer,
+    // so they stay in the running rather than being filtered out as sides.
     const candidates = pool.filter((r) => r.meals.includes(slot) && !used.has(r.id));
     if (!candidates.length) continue;
 
@@ -945,8 +996,14 @@ export function repairDay(db, opts) {
       const overshoot = Math.max(0, n.kcal - slotKcal * 1.15);
       // Junk is protein-poor, so protein is weighted harder here than in the
       // weekly planner.
+      // Two protein terms, deliberately. Density alone lets a salad win dinner
+      // after a protein-free lunch - it is protein-dense per calorie but
+      // delivers 15 g where soya keema delivers 35, and the gap to close is
+      // absolute, not proportional.
+      const closesGap = Math.min(n.p, proteinLeft);
       const score =
-        (n.p / Math.max(1, n.kcal)) * 260 -
+        (n.p / Math.max(1, n.kcal)) * 160 +
+        closesGap * 0.5 -
         (overshoot / 100) * 3 -
         (cost / Math.max(40, budgetLeft)) * 2 -
         (r.effort === 'high' ? 1.5 : r.effort === 'medium' ? 0.4 : 0);
