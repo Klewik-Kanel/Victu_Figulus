@@ -204,6 +204,55 @@ for it. The lesson is in the README's first rule: every number the user sees
 comes from a tested function — and the path from UI to that function needs
 testing too.
 
+## v2: why it looks different
+
+v1 borrowed the stainless steel of the thali and read, accurately, as a
+spreadsheet. v2 borrows what sits *inside* the masala dabba instead —
+turmeric, chilli, coriander, cumin — and confines those pigments almost
+entirely to the illustrations, so the food is the colourful thing and the
+interface around it stays quiet.
+
+The ground is deep aubergine rather than the warm cream that nearly every
+food app and nearly every generated design lands on. Turmeric is the only
+interactive accent. Type moved from Bricolage Grotesque to **Fraunces** over
+**Karla**, and the monospace data labels and `·`-joined meta strings of v1 are
+gone — both read as template chrome rather than decisions.
+
+### The thali, not a progress ring
+
+The hero is a plate seen from above with four katoris, one per meal slot, each
+filling from the bottom as that meal is logged. It replaces a donut chart.
+A plate filling up is both faster to read and the actual subject of the app;
+a ring is a chart about the subject.
+
+First attempt placed the bowls on a ring of radius 38 and the lunch katori
+swallowed the number in the middle. They now sit at radius 63 with r=19, which
+is also where they sit on a real thali.
+
+### Illustrations, not photographs
+
+~16 original SVG drawings on a 32×32 grid, pigmented entirely through CSS
+custom properties so one set serves both themes. No photographs (weight,
+licensing) and no brand packaging — a packet of crisps is drawn as a generic
+foil packet, because borrowing trade dress to label a food item is not
+something this app needs to do.
+
+Mapping food names to drawings is a short ordered rule list. Two bugs are
+instructive: `/lassi/` with no word boundary matched **C-lassi-c** and drew a
+packet of Lay's as a bowl of curd, and a generic `chaat` rule out-ranked the
+ingredient rules so corn chaat became a crisp packet. Ordered regex lists need
+word boundaries and need the specific rules above the generic ones.
+
+### Navigation and speed
+
+Five tabs became three. Cook folded into Kitchen as a third mode beside Cook
+now and What I have; You moved behind a button in the Today header, since it
+is somewhere you go twice a month.
+
+Logging a repeat meal is now one tap: the Log again row ranks the last 30 days
+by frequency, carries the portion forward, and picks the meal slot from the
+clock. Anything new still goes through the sheet.
+
 ## Known weaknesses
 
 | What | Why it matters | Fix |

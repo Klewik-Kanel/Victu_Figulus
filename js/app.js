@@ -22,6 +22,66 @@ let viewDate = today();
 let planTabDay = 0;
 
 const MEAL_LABEL = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack' };
+
+/**
+ * Which drawing stands for which food. Checked most-specific first, so
+ * "paneer bhurji" gets paneer rather than the generic sabzi bowl.
+ */
+const ICON_RULES = [
+  [/mushroom|khumb/i, 'i-mushroom'],
+  [/paneer|tofu|cottage cheese/i, 'i-paneer'],
+  [/\begg|anda|bhurji/i, 'i-egg'],
+  // \b matters: without it "C-lassi-c Salted" matched the lassi rule and a
+  // packet of crisps was drawn as a bowl of curd.
+  [/\b(curd|dahi|milk|lassi|chaas|buttermilk|yoghurt|yogurt)\b/i, 'i-curd'],
+  [/\b(chai|tea|coffee)\b/i, 'i-chai'],
+  [/palak|methi|sarson|saag|spinach|greens|coriander|cabbage|lettuce/i, 'i-greens'],
+  // Street and restaurant food before the grain rules, or "pani puri" becomes a roti.
+  // "chaat" is a form, not a dish - it was hijacking corn chaat and rajma salad.
+  [/samosa|pakora|bhajiya|vada pav|momo|pav bhaji|tikka|biryani|bhature|egg roll/i, 'i-packet'],
+  [/corn|bhutta|makka/i, 'i-sabzi'],
+  [/roti|paratha|naan|puri|chapati|thepla|bread|dosa|chilla|rusk|idli/i, 'i-roti'],
+  [/rice|pulao|khichdi|poha|upma|oats|suji|rava|atta|flour|bajra/i, 'i-rice'],
+  [/\bdal\b|sambar|kadhi|rajma|chole|chana|moong|masoor|urad|soya|sprout|lentil|bean/i, 'i-dal'],
+  [/banana|apple|guava|papaya|orange|fruit|mango|kela/i, 'i-fruit'],
+  [/chocolate|ice cream|mithai|sweet|biscuit|parle|marie|sugar|jaggery/i, 'i-sweet'],
+  [/cola|monster|red bull|frooti|maaza|slice|juice|drink|energy|soda/i, 'i-can'],
+  [/lay|kurkure|bingo|chips|bhujia|namkeen|packet|maggi|noodle|peanut butter|whey|mixture/i, 'i-packet'],
+];
+
+function iconFor(nameOrFood) {
+  const food = typeof nameOrFood === 'string' ? null : nameOrFood;
+  const name = typeof nameOrFood === 'string' ? nameOrFood : (nameOrFood?.name ?? '');
+  for (const [re, id] of ICON_RULES) if (re.test(name)) return id;
+  if (food?.cat === 'packaged' || food?.cat === 'eatingout') return 'i-packet';
+  if (food?.cat === 'fruit') return 'i-fruit';
+  if (food?.cat === 'veg') return 'i-sabzi';
+  if (food?.cat === 'grain') return 'i-roti';
+  if (food?.cat === 'pulse') return 'i-dal';
+  if (food?.cat === 'dairy') return 'i-curd';
+  if (food?.cat === 'protein') return 'i-paneer';
+  if (food?.cat === 'nonveg') return 'i-egg';
+  if (food?.cat === 'nut') return 'i-sweet';
+  if (food?.cat === 'fat' || food?.cat === 'sugar') return 'i-sweet';
+  return 'i-sabzi';
+}
+
+/** Inline so external <use> and CORS never come into it. */
+function icon(id, cls = '') {
+  return `<svg class="${cls}" aria-hidden="true"><use href="#${id}"></use></svg>`;
+}
+
+async function injectSprite() {
+  try {
+    const res = await fetch('assets/icons.svg');
+    if (!res.ok) return;
+    const markup = await res.text();
+    const holder = document.createElement('div');
+    holder.innerHTML = markup;
+    const svg = holder.querySelector('svg');
+    if (svg) document.body.insertBefore(svg, document.body.firstChild);
+  } catch { /* the app works without drawings, just plainer */ }
+}
 const MEAL_COLOUR = {
   breakfast: 'var(--indigo)',
   lunch: 'var(--moss)',
@@ -52,6 +112,7 @@ async function boot() {
     return;
   }
 
+  await injectSprite();
   fillActivitySelect();
   wireEvents();
 
@@ -83,11 +144,12 @@ function fillActivitySelect() {
 
 function show(id) {
   $$('.screen').forEach((s) => (s.hidden = s.id !== id));
-  $$('.nav-btn').forEach((b) => b.classList.toggle('is-on', b.dataset.screen === id));
+  // "You" has no tab of its own, so leave Today lit while it is open.
+  const lit = id === 'you' ? 'today' : id;
+  $$('.nav-btn').forEach((b) => b.classList.toggle('is-on', b.dataset.screen === lit));
   window.scrollTo({ top: 0 });
   if (id === 'today') renderToday();
   if (id === 'plan') renderPlan();
-  if (id === 'cook') renderCook();
   if (id === 'kitchen') renderKitchen();
   if (id === 'you') renderYou();
 }
@@ -196,96 +258,184 @@ function entryCost(entry) {
   return recipeCost(db, r, entry.servings, month, ov) + extras.cost;
 }
 
+/* Four katoris on a plate, arranged where they'd actually sit. Each fills
+   from the bottom as that meal is logged - a plate filling up reads faster
+   than a progress ring, and it is the thing this app is actually about. */
+const SLOT_POS = (() => {
+  // Katoris sit on a ring near the rim, the way they do on a real thali, so
+  // the middle stays free for the number. The first version put them too far
+  // in and the lunch bowl swallowed the figure.
+  const cx = 100, cy = 100, ring = 63, r = 19;
+  const at = (deg) => ({
+    x: cx + ring * Math.cos((deg - 90) * Math.PI / 180),
+    y: cy + ring * Math.sin((deg - 90) * Math.PI / 180),
+    r,
+  });
+  return {
+    breakfast: { ...at(0),   label: 'breakfast' },
+    lunch:     { ...at(90),  label: 'lunch' },
+    dinner:    { ...at(180), label: 'dinner' },
+    snack:     { ...at(270), label: 'snack' },
+  };
+})();
+const SLOT_PIGMENT = {
+  breakfast: 'var(--ill-turmeric)',
+  lunch:     'var(--ill-coriander)',
+  dinner:    'var(--ill-cumin)',
+  snack:     'var(--ill-chilli)',
+};
+
 function renderToday() {
   const t = currentTarget();
   const entries = store.entriesFor(viewDate);
-
   const d = new Date(viewDate + 'T12:00:00');
   const isToday = viewDate === today();
+
   $('#today-date').textContent = isToday
     ? 'Today'
-    : d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short' });
+    : d.toLocaleDateString(undefined, { weekday: 'long' });
+  $('#today-sub').textContent = d.toLocaleDateString(undefined, { day: 'numeric', month: 'long' });
 
-  // Daily budget share, so the money signal is comparable day to day.
-  const dailyBudget = weeklyBudget() / 7;
-  const spent = entries.reduce((s, e) => s + entryCost(e), 0);
-  $('#today-budget').textContent =
-    `${d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} · ₹${Math.round(spent)} of ₹${Math.round(dailyBudget)} spent`;
-
-  // --- ring: one arc per meal slot ---
+  // --- totals ---
   const byMeal = {};
   let total = { kcal: 0, p: 0, c: 0, f: 0, fiber: 0 };
+  let spent = 0;
   for (const e of entries) {
     const n = entryNutrition(e);
     byMeal[e.meal] = (byMeal[e.meal] ?? 0) + n.kcal;
     total = addNutrition(total, n);
+    spent += entryCost(e);
   }
 
-  const R = 92;
-  const C = 2 * Math.PI * R;
-  let offset = 0;
-  const arcs = [];
-  for (const meal of ['breakfast', 'lunch', 'dinner', 'snack']) {
-    const kcal = byMeal[meal] ?? 0;
-    if (kcal <= 0) continue;
-    const frac = Math.min(1, kcal / t.kcal);
-    const len = frac * C;
-    arcs.push(
-      `<circle class="ring-arc" cx="110" cy="110" r="${R}" stroke="${MEAL_COLOUR[meal]}" ` +
-      `stroke-dasharray="${len} ${C}" stroke-dashoffset="${-offset}"></circle>`
-    );
-    offset += len;
-  }
-  $('#ring-arcs').innerHTML = arcs.join('');
+  // --- the plate ---
+  const slotShare = { breakfast: 0.25, lunch: 0.35, dinner: 0.30, snack: 0.10 };
+  $('#thali-slots').innerHTML = Object.entries(SLOT_POS).map(([meal, pos]) => {
+    const budget = t.kcal * slotShare[meal];
+    const eaten = byMeal[meal] ?? 0;
+    const frac = Math.max(0, Math.min(1, eaten / budget));
+    const clipId = `clip-${meal}`;
+    // Fill height measured from the bottom of the bowl.
+    const fillTop = pos.y + pos.r - (2 * pos.r * frac);
+    return `
+      <clipPath id="${clipId}"><circle cx="${pos.x}" cy="${pos.y}" r="${pos.r - 2}"/></clipPath>
+      <circle class="slot-ring" cx="${pos.x}" cy="${pos.y}" r="${pos.r}"/>
+      <rect class="slot-fill" clip-path="url(#${clipId})"
+        x="${pos.x - pos.r}" y="${fillTop}" width="${pos.r * 2}" height="${pos.r * 2}"
+        fill="${SLOT_PIGMENT[meal]}" opacity="${frac > 0 ? 0.92 : 0}"/>
+      <text class="slot-label" x="${pos.x}" y="${pos.y + pos.r + 10}">${pos.label}</text>`;
+  }).join('');
 
   const left = Math.round(t.kcal - total.kcal);
-  const centre = $('.ring-centre');
-  centre.classList.toggle('is-over', left < 0);
-  $('#ring-figure').textContent = Math.abs(left).toLocaleString('en-IN');
-  $('#ring-caption').textContent = left < 0 ? 'over target' : `left of ${t.kcal.toLocaleString('en-IN')}`;
+  $('#thali-wrap').classList.toggle('is-over', left < 0);
+  $('#thali-fig').textContent = Math.abs(left).toLocaleString('en-IN');
+  $('#thali-cap').textContent = left < 0 ? 'over today' : 'left today';
 
-  $('#ring-legend').innerHTML = ['breakfast', 'lunch', 'dinner', 'snack']
-    .filter((m) => byMeal[m] > 0)
-    .map((m) => `<li><i style="background:${MEAL_COLOUR[m]}"></i>${MEAL_LABEL[m]} ${Math.round(byMeal[m])}</li>`)
-    .join('') || '<li>Nothing logged yet</li>';
+  // --- the one status line ---
+  $('#sp-val').textContent = Math.round(total.p);
+  $('#sp-of').textContent = `of ${t.proteinG} g`;
+  $('#sp-fill').style.width = `${Math.min(100, (total.p / t.proteinG) * 100)}%`;
 
-  // --- meters ---
-  meter('#m-protein', '#m-protein-fill', total.p, t.proteinG, 'g');
-  meter('#m-fibre', '#m-fibre-fill', total.fiber, t.fiberG, 'g');
-  $('#m-spend').textContent = `₹${Math.round(spent)} / ₹${Math.round(dailyBudget)}`;
-  const spendPct = Math.min(100, (spent / dailyBudget) * 100);
-  $('#m-spend-fill').style.width = `${spendPct}%`;
+  const dailyBudget = weeklyBudget() / 7;
+  $('#sm-val').textContent = `₹${Math.round(spent)}`;
+  $('#sm-of').textContent = `of ₹${Math.round(dailyBudget)}`;
+  $('#sm-fill').style.width = `${Math.min(100, (spent / dailyBudget) * 100)}%`;
+  $('#stat-money').classList.toggle('is-over', spent > dailyBudget);
 
-  // --- ledger ---
-  const list = $('#log-list');
+  renderQuickLog();
+
+  // --- what was eaten, grouped by meal ---
+  const host = $('#log-list');
   if (!entries.length) {
-    list.innerHTML = '<li class="empty">Log your first meal and the ring fills by slot.</li>';
-  } else {
-    list.innerHTML = entries
-      .map((e) => {
-        const n = roundNutrition(entryNutrition(e));
-        return `<li>
-          <div class="led-main">
-            <span class="led-name">${escapeHtml(e.label)}</span>
-            <span class="led-sub">${MEAL_LABEL[e.meal]} · ${escapeHtml(e.portionLabel)} · ₹${Math.round(entryCost(e))}</span>
-          </div>
-          <span class="led-fig">${n.kcal} kcal</span>
-          <span class="led-fig">${n.p} p</span>
-          <button class="led-del" data-del="${e.id}" aria-label="Remove ${escapeHtml(e.label)}">✕</button>
-        </li>`;
-      })
-      .join('');
+    host.innerHTML = `<div class="empty-state">
+      ${icon('i-empty-plate')}
+      <p class="empty-title">Nothing logged yet</p>
+      <p>Tap something above to log it again, or use Log food for anything new.</p>
+    </div>`;
+    renderRepair();
+    return;
   }
+
+  host.innerHTML = ['breakfast', 'lunch', 'dinner', 'snack']
+    .filter((m) => entries.some((e) => e.meal === m))
+    .map((m) => {
+      const rows = entries.filter((e) => e.meal === m);
+      const kcal = Math.round(rows.reduce((sum, e) => sum + entryNutrition(e).kcal, 0));
+      return `<div class="meal-group">
+        <div class="meal-group-head">
+          <span>${MEAL_LABEL[m]}</span>
+          <span class="mg-kcal">${kcal} kcal</span>
+        </div>
+        ${rows.map((e) => {
+          const n = roundNutrition(entryNutrition(e));
+          const art = e.kind === 'recipe' ? iconFor(e.label) : iconFor(db.foodsById[e.foodId] ?? e.label);
+          return `<div class="meal-row">
+            ${icon(art)}
+            <span class="meal-main">
+              <span class="meal-name">${escapeHtml(e.label)}</span>
+              <span class="meal-portion">${escapeHtml(e.portionLabel)}</span>
+            </span>
+            <span class="meal-figs"><b>${n.kcal}</b>${n.p} g protein</span>
+            <button class="meal-del" data-del="${e.id}" aria-label="Remove ${escapeHtml(e.label)}">✕</button>
+          </div>`;
+        }).join('')}
+      </div>`;
+    }).join('');
 
   renderRepair();
 }
 
-function meter(figSel, fillSel, value, target, unit) {
-  $(figSel).textContent = `${Math.round(value)} / ${target} ${unit}`;
-  const pct = Math.min(100, (value / target) * 100);
-  const fill = $(fillSel);
-  fill.style.width = `${pct}%`;
-  fill.classList.remove('is-over');
+/**
+ * People eat the same twenty things. The fastest possible log is tapping
+ * something you have eaten before, with the portion you used last time, into
+ * the meal slot the clock implies. One tap, no sheet.
+ */
+function slotForNow() {
+  const h = new Date().getHours();
+  if (h < 11) return 'breakfast';
+  if (h < 16) return 'lunch';
+  if (h < 21) return 'dinner';
+  return 'snack';
+}
+
+function frequentEntries(limit = 7) {
+  const counts = new Map();
+  const dates = Object.keys(store.state.log).sort().slice(-30);
+  for (const date of dates) {
+    for (const e of store.state.log[date]) {
+      const key = e.kind === 'recipe' ? `r:${e.recipeId}` : `f:${e.foodId}:${e.portionLabel}`;
+      const prev = counts.get(key);
+      counts.set(key, { entry: e, n: (prev?.n ?? 0) + 1 });
+    }
+  }
+  return [...counts.values()].sort((a, b) => b.n - a.n).slice(0, limit).map((x) => x.entry);
+}
+
+function renderQuickLog() {
+  const favs = frequentEntries();
+  const host = $('#quick');
+  const box = $('#quick-log');
+
+  if (!favs.length) {
+    // Nothing logged ever: offer the plates instead, so the row is never empty.
+    box.innerHTML = `
+      <button class="qbtn" data-plate="thali_veg">${icon('i-roti')}<span class="qbtn-name">Roti thali</span></button>
+      <button class="qbtn" data-plate="thali_rice">${icon('i-rice')}<span class="qbtn-name">Rice thali</span></button>
+      <button class="qbtn qbtn-more" id="qbtn-browse">${icon('i-sabzi')}<span class="qbtn-name">Browse food</span></button>`;
+    return;
+  }
+
+  box.innerHTML = favs.map((e, i) => {
+    const n = roundNutrition(entryNutrition(e));
+    const art = e.kind === 'recipe' ? iconFor(e.label) : iconFor(db.foodsById[e.foodId] ?? e.label);
+    return `<button class="qbtn" data-quick="${i}">
+      ${icon(art)}
+      <span class="qbtn-name">${escapeHtml(e.label)}</span>
+      <span class="qbtn-kcal">${n.kcal}</span>
+    </button>`;
+  }).join('') +
+  `<button class="qbtn qbtn-more" id="qbtn-browse">${icon('i-sabzi')}<span class="qbtn-name">More</span></button>`;
+
+  box._favs = favs;
 }
 
 // ---------------------------------------------------------------------------
@@ -327,8 +477,9 @@ function renderResults(q) {
       const n = roundNutrition(recipeNutrition(db, r, 1));
       const c = Math.round(recipeCost(db, r, 1, month, store.state.priceOverrides));
       return `<li><button data-pick-recipe="${r.id}">
-        <span class="res-name">${escapeHtml(r.name)}<br><span class="res-sub">one serving, cooked · ₹${c}</span></span>
-        <span class="res-fig">${n.kcal} kcal · ${n.p} g p</span>
+        ${icon(iconFor(r.name))}
+        <span class="res-name">${escapeHtml(r.name)}<span class="res-sub">one serving, cooked — ₹${c}</span></span>
+        <span class="res-fig">${n.kcal} kcal</span>
       </button></li>`;
     });
 
@@ -349,8 +500,9 @@ function renderResults(q) {
       const badge = f.isScanned ? '<span class="badge-scan">scanned</span>'
                   : f.nova === 4 ? '<span class="badge-nova">ultra-processed</span>' : '';
       return `<li><button data-pick-food="${f.id}">
-        <span class="res-name">${escapeHtml(f.name)} ${badge}<br><span class="res-sub">${m ? escapeHtml(m.label) : 'per 100 g'}</span></span>
-        <span class="res-fig">${n.kcal} kcal · ${n.p} g p</span>
+        ${icon(iconFor(f))}
+        <span class="res-name">${escapeHtml(f.name)} ${badge}<span class="res-sub">${m ? escapeHtml(m.label) : 'per 100 g'}</span></span>
+        <span class="res-fig">${n.kcal} kcal</span>
       </button></li>`;
     });
 
@@ -391,7 +543,7 @@ function renderPortionPad() {
       serveWithNutrition(db, r, pending.qty, store.state.katoriMl / 150).cost
     );
     pad.innerHTML = `
-      <div class="pp-head"><span class="pp-name">${escapeHtml(r.name)}</span></div>
+      <div class="pp-head">${icon(iconFor(r.name))}<span class="pp-name">${escapeHtml(r.name)}</span></div>
       <div class="qty-row">
         <button class="btn qty-step" data-qty="-0.25" aria-label="Less">−</button>
         <input id="pp-qty" type="number" step="0.25" min="0.25" max="6" value="${pending.qty}" aria-label="Servings">
@@ -423,8 +575,9 @@ function renderPortionPad() {
 
     pad.innerHTML = `
       <div class="pp-head">
+        ${icon(iconFor(food))}
         <span class="pp-name">${escapeHtml(food.name)}</span>
-        <span class="led-sub">${formatQty(Math.round(storedG))} as bought</span>
+        <span class="pp-as">${formatQty(Math.round(storedG))} as bought</span>
       </div>
       ${isKatori ? `
       <div class="katori-row" role="group" aria-label="Katori size">
@@ -634,16 +787,18 @@ function renderPlanDay(plan, idx) {
         return `${qty % 1 === 0 ? qty : qty.toFixed(1)} × ${measure?.label ?? mid}`;
       }).join(', ');
       return `<div class="pd-meal">
-        <div class="pd-top">
+        ${icon(iconFor(m.name))}
+        <div class="pd-body">
           <span class="pd-slot">${MEAL_LABEL[m.meal]}</span>
           <span class="pd-name">${escapeHtml(m.name)}</span>
-          <span class="pd-figs">${m.nutrition.kcal} kcal · ${m.nutrition.p} p · ₹${m.cost}</span>
-        </div>
+          <span class="pd-figs">${m.nutrition.kcal} kcal, ${m.nutrition.p} g protein, ₹${m.cost}</span>
         ${withTxt ? `<p class="pd-with">with ${escapeHtml(withTxt)}</p>` : ''}
-        <p class="pd-with"><button class="link" data-cook="${m.recipeId}">Recipe</button>
-          · <button class="link" data-logplan="${idx}:${m.meal}">Log as eaten</button>
-          ${r ? `· <button class="link" data-dislike="${m.recipeId}">Not this</button>` : ''}
+        <p class="pd-with row-actions" style="margin-top:6px">
+          <button class="link" data-cook="${m.recipeId}">Recipe</button>
+          <button class="link" data-logplan="${idx}:${m.meal}">Log as eaten</button>
+          ${r ? `<button class="link" data-dislike="${m.recipeId}">Not this</button>` : ''}
         </p>
+        </div>
       </div>`;
     }).join('')}
     <div class="pd-totals">
@@ -667,8 +822,6 @@ function renderCook() {
   const sort = $('#recipe-sort input:checked')?.value ?? 'season';
   const p = store.state.profile;
   const ov = store.state.priceOverrides;
-
-  $('#cook-sub').textContent = `${db.recipes.length} recipes · ${new Date().toLocaleDateString(undefined, { month: 'long' })} prices`;
 
   let list = db.recipes.filter((r) => {
     if (term && !r.name.toLowerCase().includes(term)) return false;
@@ -700,6 +853,7 @@ function renderCook() {
       const disliked = store.state.dislikes.includes(r.id);
       return `<li class="recipe"><details data-recipe="${r.id}">
         <summary class="recipe-sum">
+          ${icon(iconFor(r.name))}
           <span class="r-name">${escapeHtml(r.name)}
             <span class="r-tags">
               ${tag}
@@ -888,9 +1042,10 @@ function renderRepair() {
     <p class="repair-msg">${escapeHtml(r.message)}</p>
     ${r.suggestions.map((sg) => `
       <div class="repair-pick">
-        <span class="rp-slot">${MEAL_LABEL[sg.slot]}</span>
-        <span class="rp-name">${escapeHtml(sg.name)}${sg.servings !== 1 ? ` ×${sg.servings}` : ''}</span>
-        <span class="rp-figs">${sg.nutrition.kcal} kcal · ${sg.nutrition.p} p · ₹${sg.cost}</span>
+        ${icon(iconFor(sg.name))}
+        <span class="rp-name">${escapeHtml(sg.name)}${sg.servings !== 1 ? ` ×${sg.servings}` : ''}
+          <span class="rp-slot">${MEAL_LABEL[sg.slot]}</span></span>
+        <span class="rp-figs">${sg.nutrition.kcal} kcal, ${sg.nutrition.p} g protein, ₹${sg.cost}</span>
       </div>
     `).join('')}
     ${spread ? `<p class="note" style="margin-top:10px">${escapeHtml(spread.message)}</p>` : ''}
@@ -977,6 +1132,8 @@ function renderKitchen() {
   const mode = kitchenMode();
   $('#kitchen-cook').hidden = mode !== 'cook';
   $('#kitchen-stock').hidden = mode !== 'stock';
+  $('#kitchen-all').hidden = mode !== 'all';
+  if (mode === 'all') renderCook();
 
   const pantry = store.state.pantry;
   const ids = Object.keys(pantry);
@@ -985,7 +1142,7 @@ function renderKitchen() {
     : 'Nothing listed yet';
 
   if (mode === 'cook') renderCookNow(ids);
-  else renderPantry();
+  else if (mode === 'stock') renderPantry();
 }
 
 function renderCookNow(pantryIds) {
@@ -1009,6 +1166,7 @@ function renderCookNow(pantryIds) {
         const pct = Math.round(m.coverage * 100);
         const circ = 2 * Math.PI * 14;
         return `<li class="cook-row">
+          ${icon(iconFor(m.name), 'dish')}
           <span class="cover ${m.canCookNow ? '' : 'is-partial'}">
             <svg viewBox="0 0 34 34" aria-hidden="true">
               <circle class="cov-track" cx="17" cy="17" r="14"></circle>
@@ -1165,9 +1323,29 @@ function wireEvents() {
     if (del) { store.removeEntry(viewDate, del.dataset.del); renderToday(); }
   });
 
-  $('.plate-shortcuts').addEventListener('click', (e) => {
-    const b = e.target.closest('[data-plate]');
-    if (b) logPlate(b.dataset.plate);
+  // --- one-tap repeat logging ---
+  $('#quick-log').addEventListener('click', (e) => {
+    const plate = e.target.closest('[data-plate]');
+    if (plate) { logPlate(plate.dataset.plate); return; }
+
+    if (e.target.closest('#qbtn-browse')) { openSheet(); return; }
+
+    const q = e.target.closest('[data-quick]');
+    if (!q) return;
+    const favs = $('#quick-log')._favs ?? [];
+    const src = favs[Number(q.dataset.quick)];
+    if (!src) return;
+
+    // Same item, same portion, into whichever meal the clock implies.
+    const meal = slotForNow();
+    const { id, ...rest } = src;
+    store.addEntry(viewDate, { ...rest, meal });
+    if (src.kind === 'recipe') {
+      const r = db.recipesById[src.recipeId];
+      if (r) store.consumeFromPantry(r.ing.map((i) => ({ food: i.food, g: i.g * src.servings })));
+    }
+    renderToday();
+    toast(`${src.label} added to ${MEAL_LABEL[meal].toLowerCase()}`);
   });
 
   $('#btn-regen').onclick = () => { buildPlan(); renderPlan(); toast('Rebuilt this week'); };
@@ -1185,9 +1363,7 @@ function wireEvents() {
     const logp = e.target.closest('[data-logplan]');
     const dis = e.target.closest('[data-dislike]');
     if (cook) {
-      show('cook');
-      $('#recipe-search').value = db.recipesById[cook.dataset.cook]?.name ?? '';
-      renderCook();
+      openAllRecipes(db.recipesById[cook.dataset.cook]?.name ?? '');
       const d = $(`[data-recipe="${cook.dataset.cook}"]`);
       if (d) { d.open = true; renderRecipeBody(cook.dataset.cook, 1); d.scrollIntoView({ block: 'center' }); }
     }
@@ -1402,9 +1578,7 @@ function wireEvents() {
   $('#cook-now-list').addEventListener('click', (e) => {
     const b = e.target.closest('[data-cooknow]');
     if (!b) return;
-    show('cook');
-    $('#recipe-search').value = db.recipesById[b.dataset.cooknow]?.name ?? '';
-    renderCook();
+    openAllRecipes(db.recipesById[b.dataset.cooknow]?.name ?? '');
     const d = $(`[data-recipe="${b.dataset.cooknow}"]`);
     if (d) { d.open = true; renderRecipeBody(b.dataset.cooknow, 1); d.scrollIntoView({ block: 'center' }); }
   });
@@ -1422,6 +1596,9 @@ function wireEvents() {
     toast('Added to your kitchen');
     renderPlan();
   };
+
+  $('#btn-you').onclick = () => show('you');
+  $('#btn-you-back').onclick = () => show('today');
 
   $('#btn-edit-profile').onclick = () => {
     const p = store.state.profile;
@@ -1444,6 +1621,16 @@ function matchesFood(f, term) {
          (f.hi ?? '').includes(term) ||
          (f.alias ?? '').toLowerCase().includes(term) ||
          (f.brand ?? '').toLowerCase().includes(term);
+}
+
+/** Jump to Kitchen's recipe browser with a search already filled in. */
+function openAllRecipes(term = '') {
+  show('kitchen');
+  const allRadio = $('#kitchen-mode input[value="all"]');
+  if (allRadio) allRadio.checked = true;
+  renderKitchen();
+  $('#recipe-search').value = term;
+  renderCook();
 }
 
 function escapeHtml(s) {

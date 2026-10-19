@@ -70,6 +70,10 @@ ranks every recipe by how much of it is already in the house and names what is
 missing and what that costs. Oil, ghee, sugar, tea, ginger, garlic, chilli and
 coriander are assumed present, because nobody lists those.
 
+**Repeats a meal in one tap.** Most people eat the same twenty things. The
+Log again row on Today carries whatever you eat most, with the portion you
+used last time, going into whichever meal the clock implies.
+
 **Logs in the units you actually use.** A katori of dal, two rotis, a glass of
 milk. Each resolves to grams of the food *as bought* — a katori of cooked dal
 becomes the ~50 g of dry dal that went into it, which is what carries the
@@ -120,7 +124,7 @@ blames your target.
 ## Where things are
 
 ```
-index.html              app shell, every screen
+index.html              app shell, every screen (Today, Plan, Kitchen, You)
 css/app.css             the whole stylesheet
 js/core.js              all the arithmetic, zero DOM - this is the real app
 js/app.js               screens and interaction
@@ -131,6 +135,7 @@ data/seasonality.json   month x produce for North India, drives price + suggesti
 data/recipes.json       48 recipes, quantities per serving
 data/packaged.json      chips, drinks, biscuits, street food, restaurant dishes
 js/lookup.js            the only file that touches the network (barcode lookup)
+assets/icons.svg        the illustration set - original drawings, no brand marks
 tests/core.test.mjs     run these before you trust a change
 sw.js                   offline cache - bump VERSION when files change
 ```

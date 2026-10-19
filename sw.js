@@ -5,7 +5,7 @@
  * you lose signal. Bump VERSION when you change any cached file, or the old
  * copy keeps being served.
  */
-const VERSION = 'victu-v2';
+const VERSION = 'victu-v3';
 const ASSETS = [
   './',
   'index.html',
@@ -21,6 +21,7 @@ const ASSETS = [
   'data/packaged.json',
   'manifest.webmanifest',
   'icon.svg',
+  'assets/icons.svg',
 ];
 
 self.addEventListener('install', (e) => {

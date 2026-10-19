@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#F2F4F6" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0F141A" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F5F3F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#171320" media="(prefers-color-scheme: dark)">
 <title>Victu</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-title" content="Victu">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Spline+Sans:wght@400;500;600&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
@@ -92,64 +92,62 @@
 
 <!-- ======================= Today ======================= -->
 <section id="today" class="screen" hidden>
-  <header class="bar">
-    <div>
-      <h2 id="today-date" class="bar-title"></h2>
-      <p id="today-budget" class="bar-sub"></p>
+  <header class="topbar">
+    <button class="btn btn-quiet btn-icon" id="btn-prev-day" aria-label="Previous day">‹</button>
+    <div class="topbar-main" style="text-align:center">
+      <h2 id="today-date"></h2>
+      <p class="topbar-sub" id="today-sub"></p>
     </div>
-    <button class="btn btn-quiet" id="btn-prev-day" aria-label="Previous day">‹</button>
-    <button class="btn btn-quiet" id="btn-next-day" aria-label="Next day">›</button>
+    <button class="btn btn-quiet btn-icon" id="btn-next-day" aria-label="Next day">›</button>
+    <button class="btn btn-quiet btn-icon" id="btn-you" aria-label="Your profile and settings">☰</button>
   </header>
 
-  <div class="ring-wrap">
-    <svg id="ring" viewBox="0 0 220 220" class="ring" role="img" aria-labelledby="ring-label">
-      <title id="ring-label">Calories logged against today's target, by meal</title>
-      <circle class="ring-track" cx="110" cy="110" r="92"></circle>
-      <g id="ring-arcs"></g>
+  <div class="thali-wrap" id="thali-wrap">
+    <svg class="thali" id="thali" viewBox="0 0 200 200" role="img" aria-labelledby="thali-label">
+      <title id="thali-label">Your plate today — each katori fills as you log that meal</title>
+      <circle cx="100" cy="100" r="96" fill="none" stroke="var(--line)" stroke-width="2"/>
+      <circle cx="100" cy="100" r="88" fill="var(--surface)"/>
+      <g id="thali-slots"></g>
     </svg>
-    <div class="ring-centre">
-      <strong id="ring-figure">—</strong>
-      <span id="ring-caption">left today</span>
+    <div class="thali-centre">
+      <strong class="thali-fig" id="thali-fig">—</strong>
+      <span class="thali-cap" id="thali-cap"></span>
     </div>
   </div>
 
-  <ul id="ring-legend" class="legend"></ul>
-
-  <div class="meters">
-    <div class="meter">
-      <div class="meter-head"><span>Protein</span><b id="m-protein">—</b></div>
-      <div class="meter-bar"><i id="m-protein-fill"></i></div>
+  <div class="status">
+    <div class="stat is-protein" id="stat-protein">
+      <div class="stat-top"><span class="stat-val" id="sp-val">—</span><span class="stat-of" id="sp-of"></span></div>
+      <div class="stat-key">protein</div>
+      <div class="stat-bar"><i id="sp-fill"></i></div>
     </div>
-    <div class="meter">
-      <div class="meter-head"><span>Fibre</span><b id="m-fibre">—</b></div>
-      <div class="meter-bar"><i id="m-fibre-fill"></i></div>
-    </div>
-    <div class="meter">
-      <div class="meter-head"><span>Spent today</span><b id="m-spend">—</b></div>
-      <div class="meter-bar meter-bar-money"><i id="m-spend-fill"></i></div>
+    <div class="stat is-money" id="stat-money">
+      <div class="stat-top"><span class="stat-val" id="sm-val">—</span><span class="stat-of" id="sm-of"></span></div>
+      <div class="stat-key">spent today</div>
+      <div class="stat-bar"><i id="sm-fill"></i></div>
     </div>
   </div>
 
-  <div class="plate-shortcuts">
-    <button class="chip" data-plate="thali_veg">Log a roti thali</button>
-    <button class="chip" data-plate="thali_rice">Log a rice thali</button>
-    <button class="chip chip-accent" id="btn-fix-day">Plan the rest of my day</button>
-  </div>
+  <div class="section-head"><h3>Log again</h3></div>
+  <div class="quick" id="quick-log"></div>
 
   <div id="repair" class="repair" hidden></div>
 
-  <h3 class="section-head">Logged</h3>
-  <ul id="log-list" class="ledger"></ul>
+  <div class="section-head">
+    <h3>Eaten today</h3>
+    <button class="link" id="btn-fix-day">Plan the rest</button>
+  </div>
+  <div id="log-list"></div>
 
-  <button class="btn btn-primary btn-fab" id="btn-open-log">Log food</button>
+  <button class="fab" id="btn-open-log">Log food</button>
 </section>
 
 <!-- ======================= Plan ======================= -->
 <section id="plan" class="screen" hidden>
-  <header class="bar">
-    <div>
-      <h2 class="bar-title">This week</h2>
-      <p id="plan-sub" class="bar-sub"></p>
+  <header class="topbar">
+    <div class="topbar-main">
+      <h2>This week</h2>
+      <p id="plan-sub" class="topbar-sub"></p>
     </div>
     <button class="btn btn-quiet" id="btn-regen">Rebuild</button>
   </header>
@@ -168,28 +166,12 @@
   <p class="note">Tap any price to correct it. Corrections stick and every later plan uses them.</p>
 </section>
 
-<!-- ======================= Cook ======================= -->
-<section id="cook" class="screen" hidden>
-  <header class="bar">
-    <div>
-      <h2 class="bar-title">Cook</h2>
-      <p class="bar-sub" id="cook-sub"></p>
-    </div>
-  </header>
-  <div class="filters">
-    <input type="search" id="recipe-search" placeholder="Search recipes" aria-label="Search recipes">
-    <div class="seg seg-wide" id="recipe-sort" role="radiogroup" aria-label="Sort recipes">
-      <label><input type="radio" name="rsort" value="season" checked><span>In season</span></label>
-      <label><input type="radio" name="rsort" value="protein"><span>Protein value</span></label>
-      <label><input type="radio" name="rsort" value="cost"><span>Cheapest</span></label>
-    </div>
-  </div>
-  <ul id="recipe-list" class="recipe-list"></ul>
-</section>
-
 <!-- ======================= You ======================= -->
 <section id="you" class="screen" hidden>
-  <header class="bar"><div><h2 class="bar-title">You</h2><p class="bar-sub" id="you-sub"></p></div></header>
+  <header class="topbar">
+    <button class="btn btn-quiet btn-icon" id="btn-you-back" aria-label="Back">‹</button>
+    <div class="topbar-main"><h2>You</h2><p class="topbar-sub" id="you-sub"></p></div>
+  </header>
 
   <h3 class="section-head">Weight</h3>
   <form id="weight-form" class="inline-form">
@@ -228,21 +210,34 @@
 
 <!-- ======================= Kitchen ======================= -->
 <section id="kitchen" class="screen" hidden>
-  <header class="bar">
-    <div>
-      <h2 class="bar-title">Kitchen</h2>
-      <p class="bar-sub" id="kitchen-sub"></p>
+  <header class="topbar">
+    <div class="topbar-main">
+      <h2>Kitchen</h2>
+      <p class="topbar-sub" id="kitchen-sub"></p>
     </div>
   </header>
 
   <div class="seg seg-wide" id="kitchen-mode" role="radiogroup" aria-label="Kitchen view">
     <label><input type="radio" name="kmode" value="cook" checked><span>Cook now</span></label>
     <label><input type="radio" name="kmode" value="stock"><span>What I have</span></label>
+    <label><input type="radio" name="kmode" value="all"><span>All recipes</span></label>
   </div>
 
   <div id="kitchen-cook">
     <p class="note" id="cook-now-note"></p>
     <ul id="cook-now-list" class="ledger"></ul>
+  </div>
+
+  <div id="kitchen-all" hidden>
+    <div class="filters">
+      <input type="search" id="recipe-search" placeholder="Search recipes" aria-label="Search recipes">
+      <div class="seg seg-wide" id="recipe-sort" role="radiogroup" aria-label="Sort recipes">
+        <label><input type="radio" name="rsort" value="season" checked><span>In season</span></label>
+        <label><input type="radio" name="rsort" value="protein"><span>Protein value</span></label>
+        <label><input type="radio" name="rsort" value="cost"><span>Cheapest</span></label>
+      </div>
+    </div>
+    <ul id="recipe-list" class="recipe-list"></ul>
   </div>
 
   <div id="kitchen-stock" hidden>
@@ -296,11 +291,9 @@
 
 <!-- ======================= Nav ======================= -->
 <nav id="nav" class="nav" hidden>
-  <button data-screen="today" class="nav-btn is-on">Today</button>
-  <button data-screen="plan" class="nav-btn">Plan</button>
-  <button data-screen="cook" class="nav-btn">Cook</button>
-  <button data-screen="kitchen" class="nav-btn">Kitchen</button>
-  <button data-screen="you" class="nav-btn">You</button>
+  <button data-screen="today" class="nav-btn is-on"><span class="nav-dot"></span>Today</button>
+  <button data-screen="plan" class="nav-btn"><span class="nav-dot"></span>Plan</button>
+  <button data-screen="kitchen" class="nav-btn"><span class="nav-dot"></span>Kitchen</button>
 </nav>
 
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
